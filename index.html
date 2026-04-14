@@ -1,0 +1,3140 @@
+<!DOCTYPE html>
+<!--
+  ╔═══════════════════════════════════════════════════════════════╗
+  ║           DAILY CASE TRACKER DASHBOARD — TEMPLATE            ║
+  ╠═══════════════════════════════════════════════════════════════╣
+  ║  SETUP INSTRUCTIONS (takes ~10 minutes):                     ║
+  ║                                                              ║
+  ║  1. Open this file in a text editor (VS Code recommended)    ║
+  ║  2. Find the CONFIG block in the <script> section            ║
+  ║     • Set your name: name: 'Your Name'                       ║
+  ║     • Set your storage prefix: storagePrefix: 'yourname'     ║
+  ║     • Optionally add your Confluence page IDs                ║
+  ║  3. Update SF_CASES[] with your active Salesforce cases      ║
+  ║  4. Update SCHEDULE_ITEMS[] with your recurring tasks        ║
+  ║  5. Customize the Do First, Monitor, Messages sections       ║
+  ║     (search for ✏️ CUSTOMIZE comments throughout the file)   ║
+  ║  6. Update the Monthly Summary section with your stats       ║
+  ║  7. Open the file in Chrome or Edge (required for sync)      ║
+  ║  8. Click "💾 Backup" weekly to save your data               ║
+  ║                                                              ║
+  ║  SEARCH: ✏️ CUSTOMIZE  to find all spots that need editing   ║
+  ╚═══════════════════════════════════════════════════════════════╝
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Case Tracker Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --text: #e8eaf6;
+    --text-muted: #7c83a8;
+    --red: #ff4f6d;
+    --red-bg: #2a1020;
+    --red-border: #5a1a30;
+    --yellow: #ffb83f;
+    --yellow-bg: #261e0a;
+    --yellow-border: #564010;
+    --orange: #ff8c42;
+    --orange-bg: #221408;
+    --orange-border: #4a2c0a;
+    --blue: #4f8fff;
+    --blue-bg: #0a1428;
+    --blue-border: #1a3060;
+    --green: #4fcf8f;
+    --green-bg: #0a2018;
+    --green-border: #1a5030;
+    --purple: #a97fff;
+    --purple-bg: #160e28;
+    --purple-border: #3a2260;
+    --teal: #4fd4d4;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  /* GLOBAL SEARCH BAR */
+  #global-search-bar {
+    position: sticky;
+    top: 0;
+    z-index: 300;
+    background: var(--surface1);
+    border-bottom: 1.5px solid var(--blue-border, #1e3a5f);
+    padding: 10px 24px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    margin: -24px -24px 20px -24px;
+  }
+  #global-search-bar.open { display: flex; }
+  #global-search-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1.5px solid var(--blue-border, #1e3a5f);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    font-family: inherit;
+  }
+  #global-search-input:focus { border-color: var(--blue); }
+  .gs-hidden { display: none !important; }
+  mark.gs-hl {
+    background: rgba(79,143,255,0.25);
+    color: var(--blue);
+    border-radius: 2px;
+    padding: 0 1px;
+    font-weight: 700;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .header-left h1 {
+    font-size: 26px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #4f8fff, #a97fff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-left .subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  .header-left .subtitle span {
+    color: var(--teal);
+    font-weight: 600;
+  }
+
+  .refresh-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .refresh-btn:hover { background: var(--border); }
+
+  /* SUMMARY PILLS */
+  .summary-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    padding: 8px 16px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pill.red    { background: var(--red-bg);    border: 1px solid var(--red-border);    color: var(--red); }
+  .pill.yellow { background: var(--yellow-bg); border: 1px solid var(--yellow-border); color: var(--yellow); }
+  .pill.orange { background: var(--orange-bg); border: 1px solid var(--orange-border); color: var(--orange); }
+  .pill.green  { background: var(--green-bg);  border: 1px solid var(--green-border);  color: var(--green); }
+
+  .pill-count {
+    background: rgba(255,255,255,0.15);
+    border-radius: 100px;
+    padding: 1px 8px;
+    font-size: 12px;
+  }
+
+  /* GRID */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .grid-full { grid-column: 1 / -1; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title.red    { color: var(--red); }
+  .card-title.yellow { color: var(--yellow); }
+  .card-title.orange { color: var(--orange); }
+  .card-title.blue   { color: var(--blue); }
+  .card-title.purple { color: var(--purple); }
+  .card-title.teal   { color: var(--teal); }
+  .card-title.green  { color: var(--green); }
+
+  .card-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    padding: 2px 8px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+  }
+
+  /* TASK ITEMS */
+  .task-list { padding: 8px; }
+
+  .task-item {
+    padding: 12px 12px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: 1px solid transparent;
+  }
+  .task-item:last-child { margin-bottom: 0; }
+  .task-item:hover { background: var(--surface2); border-color: var(--border); }
+
+  .task-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    justify-content: space-between;
+  }
+
+  .task-main { flex: 1; min-width: 0; }
+
+  .task-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-bottom: 4px;
+  }
+
+  .task-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .tag.p0     { background: #5a0a1a; color: #ff4f6d; }
+  .tag.p1     { background: #3a1a00; color: #ff8c42; }
+  .tag.p2     { background: #1a1500; color: #ffb83f; }
+  .tag.p3     { background: #0a1a28; color: #4f8fff; }
+  .tag.blocked   { background: #2a0a28; color: #d47fff; }
+  .tag.in-prog   { background: #0a2018; color: #4fcf8f; }
+  .tag.open      { background: #1a1d27; color: #7c83a8; border: 1px solid #2e3350; }
+  .tag.verify    { background: #1a1500; color: #ffb83f; }
+  .tag.sf        { background: #0a1428; color: #4f8fff; }
+  .tag.outlook   { background: #0a1428; color: #4f8fff; }
+  .tag.slack     { background: #0e1a10; color: #4faf7f; }
+  .tag.jira      { background: #0a1428; color: #4f8fff; }
+  .tag.warning   { background: #3a1a00; color: #ff8c42; }
+
+  .task-link {
+    color: var(--text-muted);
+    font-size: 11px;
+    text-decoration: none;
+    white-space: nowrap;
+    margin-top: 2px;
+    display: inline-block;
+  }
+  .task-link:hover { color: var(--blue); }
+
+  .task-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 5px;
+    line-height: 1.5;
+    display: none;
+  }
+  .task-item.expanded .task-desc { display: block; }
+
+  .chevron {
+    color: var(--text-muted);
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: transform 0.2s;
+  }
+  .task-item.expanded .chevron { transform: rotate(90deg); }
+
+  /* CHECKBOX */
+  .checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .checkbox:hover { border-color: var(--blue); }
+  .checkbox.done {
+    background: var(--green);
+    border-color: var(--green);
+  }
+  .checkbox.done::after { content: '✓'; font-size: 10px; color: #000; font-weight: 900; }
+  .task-item.done .task-title { text-decoration: line-through; color: var(--text-muted); }
+
+  /* TAROT CARD */
+  .tarot-card {
+    background: linear-gradient(135deg, var(--purple-bg), var(--blue-bg));
+    border: 1px solid var(--purple-border);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .tarot-art {
+    font-size: 64px;
+    line-height: 1;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 12px rgba(169,127,255,0.6));
+  }
+
+  .tarot-content { flex: 1; }
+
+  .tarot-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--purple);
+    margin-bottom: 4px;
+  }
+
+  .tarot-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #e8d4ff, #a97fff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .tarot-reading {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .tarot-theme {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--purple);
+    font-weight: 600;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tarot-theme span {
+    background: var(--purple-bg);
+    border: 1px solid var(--purple-border);
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+
+  /* MESSAGES */
+  .msg-item {
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .msg-item:hover { background: var(--surface2); border-color: var(--border); }
+  .msg-item.done .msg-subject { text-decoration: line-through; color: var(--text-muted); }
+  .msg-item.done .msg-from { opacity: 0.5; }
+
+  .msg-from { font-size: 12px; font-weight: 700; color: var(--teal); margin-bottom: 2px; }
+  .msg-subject { font-size: 13px; font-weight: 600; margin-bottom: 4px; line-height: 1.3; }
+  .msg-preview { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+
+  /* TIMESTAMP */
+  .timestamp {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* DIVIDER */
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 6px 12px 4px;
+  }
+
+  /* ALERT BANNER */
+  .alert-banner {
+    background: var(--red-bg);
+    border: 1px solid var(--red-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 8px;
+    font-size: 12px;
+    color: var(--red);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* NOTE MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    width: 420px;
+    max-width: 92vw;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    animation: modalIn 0.18s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.94) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-case-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--blue); margin-bottom: 4px;
+  }
+  .modal-title {
+    font-size: 15px; font-weight: 700; color: var(--text);
+    margin-bottom: 16px; line-height: 1.4;
+  }
+  .modal-prompt {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;
+  }
+  .modal-textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 13px; padding: 10px 12px;
+    resize: vertical; min-height: 80px; font-family: inherit; line-height: 1.5;
+    outline: none; transition: border-color 0.15s; box-sizing: border-box;
+  }
+  .modal-textarea:focus { border-color: var(--blue); }
+  .modal-textarea::placeholder { color: var(--text-muted); }
+  .modal-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; margin-bottom: 18px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-btn-skip {
+    background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;
+    transition: all 0.15s;
+  }
+  .modal-btn-skip:hover { background: var(--surface2); color: var(--text); }
+  .modal-btn-save {
+    background: var(--green-bg); border: 1px solid var(--green-border); color: var(--green);
+    padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;
+    transition: all 0.15s;
+  }
+  .modal-btn-save:hover { background: #0d2e20; }
+  .modal-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 13px; padding: 9px 12px;
+    font-family: inherit; outline: none; transition: border-color 0.15s; box-sizing: border-box;
+  }
+  .modal-input:focus { border-color: var(--blue); }
+  .modal-input::placeholder { color: var(--text-muted); }
+  .modal-select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 13px; padding: 9px 12px;
+    font-family: inherit; outline: none; transition: border-color 0.15s; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237c83a8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+  }
+  .modal-select:focus { border-color: var(--blue); }
+  .modal-select option { background: #1a1d27; }
+  .modal-field { margin-bottom: 14px; }
+  .modal-field-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; display: block; }
+  .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .tag.pending { background: #1a1000; color: #ffb83f; border: 1px solid #564010; font-size: 9px; padding: 1px 5px; }
+  .tag.stale   { background: #2a0a08; color: #ff6b4f; border: 1px solid #5a1a10; font-size: 9px; padding: 1px 5px; }
+
+  /* FILTER BAR */
+  .filter-bar {
+    display: flex; gap: 8px; padding: 10px 8px 6px; flex-wrap: wrap; align-items: center;
+    border-bottom: 1px solid var(--border); margin-bottom: 4px;
+  }
+  .filter-input {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-size: 12px; padding: 5px 10px; outline: none;
+    transition: border-color 0.15s; font-family: inherit; width: 160px;
+  }
+  .filter-input:focus { border-color: var(--blue); }
+  .filter-input::placeholder { color: var(--text-muted); }
+  .filter-select {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-size: 12px; padding: 5px 10px; outline: none; cursor: pointer;
+    font-family: inherit; transition: border-color 0.15s;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%237c83a8' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center;
+    padding-right: 24px; appearance: none; -webkit-appearance: none;
+  }
+  .filter-select:focus { border-color: var(--blue); }
+  .filter-select option { background: #1a1d27; }
+  .filter-clear {
+    background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    border-radius: 6px; font-size: 11px; padding: 4px 10px; cursor: pointer; transition: all 0.15s;
+  }
+  .filter-clear:hover { background: var(--surface2); color: var(--text); }
+  .filter-active { border-color: var(--blue) !important; color: var(--blue) !important; }
+  .filter-count { font-size: 11px; color: var(--text-muted); white-space: nowrap; margin-left: auto; }
+
+  /* STALE ALERT BANNER */
+  .stale-banner {
+    background: #1e0d08; border: 1px solid #5a2010; border-radius: 8px;
+    padding: 8px 12px; margin: 6px 8px; font-size: 12px; color: #ff8060;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* MONITOR CHECKBOX (lighter style) */
+  .checkbox-monitor {
+    width: 16px; height: 16px; border: 2px solid #3a4060; border-radius: 4px;
+    flex-shrink: 0; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: all 0.15s; margin-top: 2px;
+  }
+  .checkbox-monitor:hover { border-color: var(--orange); }
+  .checkbox-monitor.done { background: var(--orange); border-color: var(--orange); }
+  .checkbox-monitor.done::after { content: '✓'; font-size: 10px; color: #000; font-weight: 900; }
+
+  /* ACTIVE CASES CHECKLIST */
+  .case-header-row {
+    display: grid;
+    grid-template-columns: 28px 130px 100px 1fr 170px;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--surface2);
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  .case-row {
+    display: grid;
+    grid-template-columns: 28px 130px 100px 1fr 170px;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    align-items: center;
+    margin-bottom: 2px;
+    transition: background 0.15s;
+  }
+  .case-row:hover { background: var(--surface2); border-color: var(--border); }
+  .case-row.case-done { opacity: 0.42; }
+  .case-row.case-done .case-num { text-decoration: line-through; color: var(--text-muted); }
+  .case-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    flex-shrink: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .case-checkbox:hover { border-color: var(--green); }
+  .case-checkbox.done { background: var(--green); border-color: var(--green); }
+  .case-checkbox.done::after { content: '✓'; font-size: 10px; color: #000; font-weight: 900; }
+  .case-checkbox.indeterminate { background: var(--surface2); border-color: var(--text-muted); }
+  .case-checkbox.indeterminate::after { content: '–'; font-size: 12px; color: var(--text-muted); font-weight: 900; }
+  .case-num { font-size: 12px; font-weight: 600; color: var(--blue); text-decoration: none; }
+  .case-num:hover { color: #7ab0ff; }
+  .case-date { font-size: 11px; color: var(--text-muted); }
+  .case-note { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sync-connect-btn {
+    background: var(--blue-bg);
+    border: 1px solid var(--blue-border);
+    color: var(--blue);
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .sync-connect-btn:hover { background: #122040; }
+  .sync-connect-btn.connected {
+    background: var(--green-bg);
+    border-color: var(--green-border);
+    color: var(--green);
+  }
+
+  /* PROJECTS & COMMITMENTS */
+  .proj-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 100px 1fr 36px;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    align-items: start;
+    margin-bottom: 3px;
+    transition: background 0.15s;
+  }
+  .proj-row:hover { background: var(--surface2); border-color: var(--border); }
+  .proj-header-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 100px 1fr 36px;
+    gap: 10px;
+    padding: 6px 12px;
+    background: var(--surface2);
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  .proj-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.4; }
+  .proj-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+  .proj-notes { font-size: 11px; color: var(--text); line-height: 1.5; }
+  .proj-date { font-size: 11px; color: var(--text-muted); }
+  .proj-status-ongoing  { background:#0a1f1a;color:#4ecba3;border:1px solid #1a4a3a;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;white-space:nowrap; }
+  .proj-status-inprog   { background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border);padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;white-space:nowrap; }
+  .proj-status-blocked  { background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border);padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;white-space:nowrap; }
+  .proj-status-done     { background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;white-space:nowrap;opacity:0.7; }
+  .proj-status-notstart { background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;white-space:nowrap; }
+  .proj-edit-btn { background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:15px;padding:2px 4px;border-radius:4px;transition:all 0.15s;align-self:center; }
+  .proj-edit-btn:hover { background:var(--surface2);color:var(--blue); }
+  .proj-row.proj-done { opacity: 0.45; }
+
+  /* ACTION ITEMS */
+  .ai-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    margin-bottom: 3px;
+    transition: background 0.15s;
+  }
+  .ai-row:hover { background: var(--surface2); border-color: var(--border); }
+  .ai-row.ai-done { opacity: 0.38; }
+  .ai-row.ai-done .ai-text { text-decoration: line-through; color: var(--text-muted); }
+  .ai-text { font-size: 13px; color: var(--text); flex: 1; line-height: 1.45; }
+  .ai-meta { font-size: 10px; color: var(--text-muted); margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .ai-del-btn { background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:13px; padding:3px 5px; border-radius:4px; flex-shrink:0; transition:all 0.15s; margin-top:1px; }
+  .ai-del-btn:hover { color:var(--red); background:var(--red-bg); }
+  .ai-captured-toast {
+    position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+    background: #0a1a2a; border: 1.5px solid var(--blue-border); color: var(--blue);
+    padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 700;
+    z-index: 9999; box-shadow: 0 4px 24px rgba(0,0,0,0.5); transition: opacity 0.4s;
+    max-width: 420px; text-align: center; pointer-events: none;
+  }
+
+
+  /* ── Daily Log ── */
+  .dl-day { margin-bottom: 22px; }
+  .dl-date-header { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--green);padding-bottom:7px;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:8px; }
+  .dl-count { font-weight:400;color:var(--text-muted);font-size:10px;text-transform:none;letter-spacing:0; }
+  .dl-row { display:flex;gap:10px;align-items:flex-start;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background 0.15s;position:relative; }
+  .dl-row:hover { background:var(--surface2); }
+  .dl-sf { color:var(--blue);font-weight:700;font-size:12px;white-space:nowrap;min-width:112px;padding-top:1px; }
+  .dl-note { flex:1;font-size:12px;color:var(--text);line-height:1.55; }
+  .dl-del { background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:2px 4px;opacity:0;transition:opacity 0.15s;flex-shrink:0; }
+  .dl-row:hover .dl-del { opacity:1; }
+  .dl-empty { color:var(--text-muted);font-size:13px;padding:8px 0;font-style:italic; }
+  #case-history-content .ch-entry { padding:8px 0;border-bottom:1px solid var(--border); }
+  #case-history-content .ch-entry:last-child { border-bottom:none; }
+  #case-history-content .ch-date { font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px; }
+  #case-history-content .ch-note { font-size:12px;color:var(--text);line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1 id="greeting-header">👋 Good morning!</h1>
+    <div class="subtitle">
+      <span id="live-date"></span> &nbsp;·&nbsp;
+      Sources: <span>Jira</span> &nbsp;·&nbsp; <span>Outlook</span> &nbsp;·&nbsp; <span>Gmail</span> &nbsp;·&nbsp; <span>Slack</span> &nbsp;·&nbsp;
+      Auto-refreshes every 2 hours 9AM–6PM
+    </div>
+  </div>
+  <button class="refresh-btn" onclick="window.location.reload()">
+    ⟳ Refresh now
+  </button>
+</div>
+
+<!-- GLOBAL SEARCH BAR (Ctrl+F) -->
+<div id="global-search-bar">
+  <span style="font-size:15px;color:var(--blue);">🔍</span>
+  <input id="global-search-input" type="text" placeholder="Search tasks, cases, messages… (Esc to close)" oninput="runGlobalSearch(this.value)" />
+  <span id="gs-count" style="font-size:12px;color:var(--text-muted);white-space:nowrap;min-width:80px;text-align:right;"></span>
+  <button onclick="hideGlobalSearch()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:20px;line-height:1;padding:0 4px;" title="Close search (Esc)">✕</button>
+</div>
+
+<!-- SUMMARY PILLS -->
+<div class="summary-bar">
+  <div class="pill red">🔴 Do first <span class="pill-count">8</span></div>
+  <div class="pill yellow">🟡 Schedule <span class="pill-count">8</span></div>
+  <div class="pill orange">🟠 Monitor <span class="pill-count">2</span></div>
+  <div class="pill green">✅ Done today <span class="pill-count" id="done-count">0</span></div>
+</div>
+
+<div class="grid">
+
+  <!-- DO FIRST -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title red">🔴 Do First — Urgent + Important</div>
+      <div class="card-count">8 items</div>
+    </div>
+    <div class="task-list">
+
+      <!-- ✏️ CUSTOMIZE: Edit or add your urgent tasks below. Delete these examples. -->
+
+      <!-- EXAMPLE Task 1: P0 Jira escalation -->
+      <!-- <div class="task-item" onclick="toggleTask(this)" data-jira="PROJ-1234">
+        <div class="task-top">
+          <div onclick="event.stopPropagation(); toggleDone(this)" class="checkbox"></div>
+          <div class="task-main">
+            <div class="task-title">PROJ-1234 — P0 Escalation: describe the issue here</div>
+            <div class="task-meta">
+              <span class="tag p0">P0</span>
+              <span class="tag open">Open</span>
+              <span class="tag jira">PROJ-1234</span>
+              <a class="task-link" href="https://intuit-prod.atlassian.net/browse/PROJ-1234" target="_blank" onclick="event.stopPropagation()">↗ Open in Jira</a>
+            </div>
+            <div class="task-desc">Describe what needs action and why it's urgent.</div>
+          </div>
+          <div class="chevron">▶</div>
+        </div>
+      </div> -->
+
+      <!-- EXAMPLE Task 2: Unread customer comment -->
+      <!-- <div class="task-item" onclick="toggleTask(this)" data-sf="15150000001">
+        <div class="task-top">
+          <div onclick="event.stopPropagation(); toggleDone(this)" class="checkbox"></div>
+          <div class="task-main">
+            <div class="task-title">💬 Reply to SF #15150000001 — Customer Name Here</div>
+            <div class="task-meta">
+              <span class="tag warning">Unread Comment</span>
+              <span class="tag sf">Salesforce</span>
+            </div>
+            <div class="task-desc">New customer comment received. Review and respond.</div>
+          </div>
+          <div class="chevron">▶</div>
+        </div>
+      </div> -->
+
+      <!-- Add your real tasks above this line -->
+
+    </div>
+  </div>
+
+  <!-- SCHEDULE -->
+  <div class="card" id="schedule-card">
+    <div class="card-header">
+      <div class="card-title yellow">🟡 Schedule — Important, Not Urgent</div>
+      <div class="card-count" id="schedule-count"></div>
+    </div>
+    <div class="task-list" id="schedule-list">
+      <!-- rendered by renderSchedule() -->
+    </div>
+  </div>
+
+  <!-- MONITOR -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title orange">🟠 Monitor — Blocked by Engineering</div>
+      <div class="card-count">2 items</div>
+    </div>
+    <div class="task-list">
+      <div class="section-label">No action needed — keep an eye on these</div>
+
+      <!-- ✏️ CUSTOMIZE: Replace these examples with your blocked/monitored cases. -->
+
+      <!-- EXAMPLE Monitor item -->
+      <!-- <div class="task-item" onclick="toggleTask(this)" data-sf="15150000002">
+        <div class="task-top">
+          <div onclick="event.stopPropagation(); toggleMonitorDone(this)" class="checkbox-monitor"></div>
+          <div class="task-main">
+            <div class="task-title">Describe the issue being monitored — Customer Name</div>
+            <div class="task-meta">
+              <span class="tag p3">P3</span>
+              <span class="tag blocked">Blocked</span>
+              <span class="tag jira">PROJ-000</span>
+              <span class="tag sf">SF #15150000002</span>
+              <a class="task-link" href="https://intuit-prod.atlassian.net/browse/PROJ-000" target="_blank" onclick="event.stopPropagation()">↗ Open in Jira</a>
+            </div>
+            <div class="task-desc">Describe the issue and what you're waiting on from engineering.</div>
+          </div>
+          <div class="chevron">▶</div>
+        </div>
+      </div> -->
+
+      <!-- Add your real monitor items above this line -->
+
+    </div>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title teal">💬 Messages Needing a Reply</div>
+      <div class="card-count">7 threads</div>
+    </div>
+    <div class="task-list">
+
+      <!-- ✏️ CUSTOMIZE: Add your messages/threads needing a reply. Delete these examples. -->
+
+      <!-- EXAMPLE: Jira mention -->
+      <!-- <div class="msg-item" onclick="toggleTask(this)" data-jira="PROJ-1234">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div onclick="event.stopPropagation(); toggleDone(this)" class="checkbox" style="margin-top:3px;flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;">
+            <div class="msg-from">🔔 Jira — Someone mentioned you — URGENT</div>
+            <div class="msg-subject">PROJ-1234: Describe the ticket subject</div>
+            <div class="task-meta" style="margin-top:5px">
+              <span class="tag p0">P0</span>
+              <span class="tag jira">PROJ-1234</span>
+            </div>
+            <div class="task-desc" style="margin-top:8px">Describe what you need to do in response.</div>
+          </div>
+        </div>
+      </div> -->
+
+      <!-- EXAMPLE: SF customer comment -->
+      <!-- <div class="msg-item" onclick="toggleTask(this)" data-sf="15150000001">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div onclick="event.stopPropagation(); toggleDone(this)" class="checkbox" style="margin-top:3px;flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;">
+            <div class="msg-from">📧 Salesforce — Customer Name Here</div>
+            <div class="msg-subject">New comment on SF #15150000001</div>
+            <div class="task-meta" style="margin-top:5px"><span class="tag sf">SF #15150000001</span></div>
+            <div class="task-desc" style="margin-top:8px">Customer comment received. Review and respond.</div>
+          </div>
+        </div>
+      </div> -->
+
+      <!-- Add your real messages above this line -->
+
+    </div>
+  </div>
+
+  <!-- GIF OF THE DAY -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title purple">😂 GIF of the Day — Share with your team!</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="newGif()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;">🔀 New GIF</button>
+      </div>
+    </div>
+    <div style="padding: 20px;">
+      <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;">
+        <div style="flex-shrink:0;border-radius:12px;overflow:hidden;border:2px solid var(--purple-border);max-width:280px;">
+          <img id="gif-img" src="" alt="Team GIF" style="display:block;width:280px;max-width:100%;height:200px;object-fit:cover;" />
+        </div>
+        <div style="flex:1;min-width:160px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--purple);margin-bottom:6px;">Mood of the Day</div>
+          <div id="gif-title" style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:8px;line-height:1.3;"></div>
+          <div id="gif-caption" style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:16px;"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="copyGifLink()" style="background:var(--purple-bg);border:1px solid var(--purple-border);color:var(--purple);padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">📋 Copy link to share</button>
+            <span id="gif-copy-confirm" style="color:var(--green);font-size:12px;align-self:center;display:none;">✓ Copied!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FUNNY QUOTE OF THE DAY -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title orange">💬 Quote of the Day</div>
+      <button onclick="newQuote()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;">🔀 New Quote</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;justify-content:center;min-height:200px;">
+      <div style="font-size:36px;text-align:center;margin-bottom:16px;filter:drop-shadow(0 0 10px rgba(255,140,66,0.4));" id="quote-emoji"></div>
+      <blockquote id="quote-text" style="font-size:15px;font-weight:600;color:var(--text);line-height:1.7;text-align:center;margin:0 0 14px 0;font-style:italic;"></blockquote>
+      <div id="quote-author" style="font-size:12px;color:var(--orange);font-weight:700;text-align:center;text-transform:uppercase;letter-spacing:0.08em;"></div>
+      <div id="quote-context" style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:6px;line-height:1.5;"></div>
+      <div style="margin-top:18px;text-align:center;">
+        <button onclick="copyQuote()" style="background:var(--orange-bg);border:1px solid var(--orange-border);color:var(--orange);padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">📋 Copy to share</button>
+        <span id="quote-copy-confirm" style="color:var(--green);font-size:12px;margin-left:8px;display:none;">✓ Copied!</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVE CASES CHECKLIST (full width) -->
+  <div class="card grid-full" id="active-cases-card">
+    <div class="card-header">
+      <div class="card-title blue">✅ Active SF Cases — Mark Done Today</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <span id="cases-done-count" style="font-size:11px;color:var(--text-muted);">0 of 30 checked</span>
+        <span id="sync-file-status" style="font-size:11px;color:var(--text-muted);">· Click to enable auto-sync</span>
+        <button onclick="openAddCaseModal()" style="background:var(--blue-bg);border:1px solid var(--blue-border);color:var(--blue);padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">+ Add Case</button>
+        <button id="sync-now-btn" class="sync-connect-btn" onclick="syncNow()" style="display:none;">⚡ Sync Now</button>
+        <button id="sync-file-btn" class="sync-connect-btn" onclick="setupSyncFile()">📁 Connect sync file</button>
+        <button onclick="backupData()" title="Save all your data to a file on your Desktop" style="background:var(--purple-bg);border:1px solid var(--purple-border);color:var(--purple);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">💾 Backup</button>
+        <button onclick="restoreData()" title="Restore data from a backup file" style="background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">📂 Restore</button>
+        <span id="backup-confirm" style="color:var(--green);font-size:12px;display:none;">✓ Backed up!</span>
+        <!-- ✏️ CUSTOMIZE: Replace this URL with your own Confluence Active Cases page link -->
+        <a href="#" target="_blank" style="background:var(--blue-bg);border:1px solid var(--blue-border);color:var(--blue);padding:5px 14px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;">📄 Confluence</a>
+      </div>
+    </div>
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <input id="filter-search" class="filter-input" placeholder="🔍  Search SF # or notes…" oninput="applyFilters()" />
+      <select id="filter-status" class="filter-select" onchange="applyFilters()">
+        <option value="">All statuses</option>
+        <option value="In progress">In progress</option>
+        <option value="INV - Open">INV - Open</option>
+        <option value="Blocked - With PD">Blocked - With PD</option>
+        <option value="Blocked - Awaiting customer's response">Awaiting customer</option>
+        <option value="Blocked - With Engineering">With Engineering</option>
+        <option value="Escalated">Escalated</option>
+      </select>
+      <select id="filter-date" class="filter-select" onchange="applyFilters()">
+        <option value="">All dates</option>
+        <option value="today">Opened today</option>
+        <option value="week">Last 7 days</option>
+        <option value="month">Last 30 days</option>
+        <option value="stale">⚠ Stale (5+ days waiting)</option>
+      </select>
+      <select id="filter-sort" class="filter-select" onchange="applyFilters()">
+        <option value="date-asc">Date ↑ oldest first</option>
+        <option value="date-desc">Date ↓ newest first</option>
+        <option value="status">By status</option>
+        <option value="stale-first">Stale first</option>
+      </select>
+      <button class="filter-clear" id="filter-clear-btn" onclick="clearFilters()" style="display:none;">✕ Clear</button>
+      <span class="filter-count" id="filter-count"></span>
+    </div>
+
+    <div style="max-height:460px;overflow-y:auto;">
+      <!-- Stale alert banner (shown when stale cases exist) -->
+      <div id="stale-banner" class="stale-banner" style="display:none;"></div>
+
+      <div style="padding:0 8px 8px;">
+        <div class="case-header-row">
+          <div id="check-all-box" class="case-checkbox" onclick="toggleCheckAll()" title="Check / uncheck all visible cases" style="cursor:pointer;"></div>
+          <span>SF Case #</span>
+          <span>Date Opened</span>
+          <span>Last Action / Notes</span>
+          <span>Status</span>
+        </div>
+        <div id="cases-list"></div>
+        <div id="filter-empty" style="display:none;text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">No cases match your filters.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROJECTS & EXTRA COMMITMENTS (full width) -->
+  <div class="card grid-full" id="projects-card">
+    <div class="card-header">
+      <div class="card-title teal">📌 Projects &amp; Extra Commitments</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="proj-count" style="font-size:11px;color:var(--text-muted);"></span>
+        <button onclick="openProjModal()" style="background:var(--teal,#1a3a3a);border:1px solid #1a4a4a;color:#4ecba3;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">+ Add Project</button>
+      </div>
+    </div>
+    <div style="padding:0 8px 12px;">
+      <div class="proj-header-row">
+        <span>Project / Commitment</span>
+        <span>Status</span>
+        <span>Due / Timeline</span>
+        <span>Notes &amp; Last Update</span>
+        <span></span>
+      </div>
+      <div id="projects-list"></div>
+    </div>
+  </div>
+
+  <!-- PROJECT MODAL -->
+  <div class="modal-overlay" id="proj-modal" onclick="projModalOverlayClick(event)" style="display:none;">
+    <div class="modal-box" style="max-width:480px;">
+      <div class="modal-case-label" id="proj-modal-label">New Project</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Project Name *</label>
+          <input id="proj-input-name" placeholder="e.g. Off-Campus Community Co-chair" style="width:100%;margin-top:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;box-sizing:border-box;" />
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Description</label>
+          <input id="proj-input-desc" placeholder="Short summary" style="width:100%;margin-top:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;box-sizing:border-box;" />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Status</label>
+            <select id="proj-input-status" style="width:100%;margin-top:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;">
+              <option value="ongoing">🔄 Ongoing</option>
+              <option value="inprog">▶ In Progress</option>
+              <option value="notstart">○ Not Started</option>
+              <option value="blocked">⏸ Blocked</option>
+              <option value="done">✓ Completed</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Due / Timeline</label>
+            <input id="proj-input-due" placeholder="e.g. May 2026 or Ongoing" style="width:100%;margin-top:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;box-sizing:border-box;" />
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Notes / Last Update</label>
+          <textarea id="proj-input-notes" rows="3" placeholder="Progress notes, next steps, links…" style="width:100%;margin-top:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:12px;resize:vertical;box-sizing:border-box;"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:16px;">
+        <button class="modal-btn-skip" onclick="closeProjModal(false)">Cancel</button>
+        <button id="proj-modal-delete" onclick="deleteProjFromModal()" style="background:#2a0808;border:1px solid #5a1010;color:#ff6b6b;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;display:none;">🗑 Delete</button>
+        <button class="modal-btn-save" onclick="closeProjModal(true)">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TODAY'S ACTION ITEMS (full width) -->
+  <div class="card grid-full" id="action-items-card">
+    <div class="card-header">
+      <div class="card-title red">☑️ Today's Action Items</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="ai-count" style="font-size:11px;color:var(--text-muted);"></span>
+        <button onclick="openAiModal()" style="background:var(--red-bg);border:1px solid var(--red-border);color:var(--red);padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">+ Add Item</button>
+      </div>
+    </div>
+    <div style="padding:0 8px 12px;" id="action-items-body">
+      <div id="action-items-list"></div>
+    </div>
+  </div>
+
+  <!-- ACTION ITEM MANUAL-ADD MODAL -->
+  <div class="modal-overlay" id="ai-modal" onclick="aiModalOverlayClick(event)" style="display:none;">
+    <div class="modal-box" style="max-width:420px;">
+      <div class="modal-case-label">Add Action Item</div>
+      <div style="margin-top:10px;">
+        <label style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">What do you need to do?</label>
+        <textarea id="ai-modal-input" rows="3" placeholder="e.g. Create JIRA for invoice import issue…" style="width:100%;margin-top:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>
+      </div>
+      <div class="modal-actions" style="margin-top:14px;">
+        <button class="modal-btn-skip" onclick="closeAiModal(false)">Cancel</button>
+        <button class="modal-btn-save" onclick="closeAiModal(true)">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MONTHLY SUMMARY (full width) -->
+  <div class="card grid-full" id="monthly-summary">
+    <div class="card-header">
+      <!-- ✏️ CUSTOMIZE: Update this title to reflect the current month -->
+      <div class="card-title green">📋 Monthly Summary</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:11px;color:var(--text-muted);">Month-to-date</span>
+        <button onclick="copyBetterworks()" style="background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">📋 Copy for Betterworks</button>
+        <a href="#daily-log-card" onclick="document.getElementById('daily-log-card').scrollIntoView({behavior:'smooth'});return false;" style="background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;cursor:pointer;">📓 Daily Log</a>
+        <span id="bw-copy-confirm" style="color:var(--green);font-size:12px;display:none;">✓ Copied!</span>
+      </div>
+    </div>
+    <div style="padding:16px 20px;">
+
+      <!-- ✏️ CUSTOMIZE: Update these stats at the end of each month -->
+      <!-- Stats row -->
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+        <div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:10px;padding:12px 18px;text-align:center;min-width:90px;">
+          <div style="font-size:28px;font-weight:800;color:var(--green);">0</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Tickets Resolved</div>
+        </div>
+        <div style="background:var(--red-bg);border:1px solid var(--red-border);border-radius:10px;padding:12px 18px;text-align:center;min-width:90px;">
+          <div style="font-size:28px;font-weight:800;color:var(--red);">0</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">P0s Closed</div>
+        </div>
+        <div style="background:var(--orange-bg);border:1px solid var(--orange-border);border-radius:10px;padding:12px 18px;text-align:center;min-width:90px;">
+          <div style="font-size:28px;font-weight:800;color:var(--orange);">0</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">P1s Closed</div>
+        </div>
+        <div style="background:var(--yellow-bg);border:1px solid var(--yellow-border);border-radius:10px;padding:12px 18px;text-align:center;min-width:90px;">
+          <div style="font-size:28px;font-weight:800;color:var(--yellow);">0</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">P2s Closed</div>
+        </div>
+        <div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:10px;padding:12px 18px;text-align:center;min-width:90px;">
+          <div style="font-size:28px;font-weight:800;color:var(--blue);">0</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Customers Helped</div>
+        </div>
+      </div>
+
+      <!-- ✏️ CUSTOMIZE: Replace placeholder bullets with your real accomplishments for BetterWorks -->
+      <!-- Betterworks-ready accomplishments -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--green);margin-bottom:12px;">✅ Accomplishments this month</div>
+        <div id="bw-content" style="font-size:13px;color:var(--text);line-height:1.9;">
+          <div style="margin-bottom:6px;">• Add your first accomplishment here — e.g. Resolved <strong>P0 issue</strong> (PROJ-001) — brief description of the customer impact and outcome.</div>
+          <div style="margin-bottom:6px;">• Add another accomplishment here — e.g. Closed <strong>P1 bank connection issue</strong> (PROJ-002) — brief description.</div>
+          <div style="margin-bottom:6px;color:var(--text-muted);font-style:italic;">✏️ Add more bullets above, or delete these placeholders. Click "Copy for BetterWorks" to copy this section.</div>
+        </div>
+      </div>
+
+      <!-- ✏️ CUSTOMIZE: Add rows for each resolved ticket. Delete example rows. -->
+      <!-- Resolved tickets table -->
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:8px;padding-left:2px;">Resolved tickets</div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <div style="display:grid;grid-template-columns:110px 1fr 80px 90px;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">
+          <span>Ticket</span><span>Summary</span><span>Priority</span><span>Status</span>
+        </div>
+        <!-- EXAMPLE ROW — duplicate this pattern for each resolved ticket -->
+        <!-- <div onclick="window.open('https://intuit-prod.atlassian.net/browse/PROJ-001','_blank')" style="display:grid;grid-template-columns:110px 1fr 80px 90px;gap:8px;padding:8px 10px;border-radius:8px;font-size:12px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#22263a'" onmouseout="this.style.background='transparent'">
+          <span style="color:var(--blue);font-weight:600;">PROJ-001</span>
+          <span style="color:var(--text);">Describe the issue here</span>
+          <span><span class="tag p0">P0</span></span>
+          <span><span class="tag in-prog" style="background:#0a2018;color:#4fcf8f;">Closed</span></span>
+        </div> -->
+        <div style="padding:16px 10px;color:var(--text-muted);font-size:12px;font-style:italic;text-align:center;">No resolved tickets yet this month — add rows above as you close cases.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- DAILY LOG CARD -->
+<div class="card grid-full" id="daily-log-card">
+  <div class="card-header">
+    <div class="card-title green">📓 Daily Log</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button onclick="copyDailyLogBetterworks()" style="background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">📋 Copy for BetterWorks</button>
+      <button onclick="addManualLogEntry()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">+ Add Entry</button>
+      <span id="dl-copy-confirm" style="color:var(--green);font-size:12px;display:none;">✓ Copied!</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:0;min-height:180px;">
+    <!-- Left: daily timeline -->
+    <div style="flex:1;padding:16px 20px;overflow-y:auto;max-height:520px;">
+      <div id="daily-log-entries"><div class="dl-empty">No entries yet — check off cases above and they'll appear here automatically.</div></div>
+    </div>
+    <!-- Right: case history lookup -->
+    <div id="case-history-panel" style="width:310px;border-left:1px solid var(--border);padding:16px 20px;flex-shrink:0;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:10px;">🔍 Case History</div>
+      <input id="history-search" class="modal-input" type="text" placeholder="Type SF # to see full history…" style="width:100%;margin-bottom:12px;font-size:12px;" oninput="renderCaseHistory(this.value)" />
+      <div id="case-history-content" style="color:var(--text-muted);font-size:12px;font-style:italic;">Enter an SF # above to view its full history across all dates.</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="timestamp">
+  <div class="live-dot"></div>
+  Last refreshed: <strong id="refresh-time"></strong> &nbsp;·&nbsp; Auto-refreshes every 2 hours on weekdays 9AM–6PM CT &nbsp;·&nbsp; Sources: Jira · Outlook · Gmail · Slack
+</div>
+
+<!-- ADD CASE MODAL -->
+<div class="modal-overlay" id="add-case-modal" onclick="addCaseOverlayClick(event)">
+  <div class="modal-box" style="width:500px;">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+      <span>➕ Add New Case</span>
+      <span onclick="closeAddCaseModal()" style="cursor:pointer;color:var(--text-muted);font-size:18px;line-height:1;">✕</span>
+    </div>
+
+    <div class="modal-row">
+      <div>
+        <label class="modal-field-label">SF Case # <span style="color:var(--red);">*</span></label>
+        <input id="ac-sf" class="modal-input" type="text" placeholder="e.g. 15157999999" maxlength="30" />
+      </div>
+      <div>
+        <label class="modal-field-label">Date Opened <span style="color:var(--red);">*</span></label>
+        <input id="ac-date" class="modal-input" type="date" />
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <label class="modal-field-label">Status <span style="color:var(--red);">*</span></label>
+      <select id="ac-status" class="modal-select">
+        <option value="">— Select a status —</option>
+        <option value="In progress">In progress</option>
+        <option value="INV - Open">INV - Open</option>
+        <option value="Blocked - With PD">Blocked - With PD</option>
+        <option value="Blocked - Awaiting customer's response">Blocked - Awaiting customer's response</option>
+        <option value="Blocked - With Engineering">Blocked - With Engineering</option>
+        <option value="Escalated">Escalated</option>
+        <option value="Resolved">Resolved</option>
+      </select>
+    </div>
+
+    <div class="modal-field">
+      <label class="modal-field-label">Last Action / Notes</label>
+      <textarea id="ac-notes" class="modal-textarea" placeholder="What's the latest on this case? What did you do?" rows="3" style="min-height:70px;"></textarea>
+    </div>
+
+    <div id="ac-error" style="color:var(--red);font-size:12px;margin-bottom:12px;display:none;"></div>
+
+    <div class="modal-actions">
+      <button class="modal-btn-skip" onclick="closeAddCaseModal()">Cancel</button>
+      <button class="modal-btn-save" style="background:var(--blue-bg);border-color:var(--blue-border);color:var(--blue);" onclick="submitAddCase()">➕ Add to Dashboard &amp; Sync</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTE MODAL -->
+<div class="modal-overlay" id="note-modal" onclick="modalOverlayClick(event)">
+  <div class="modal-box">
+    <div class="modal-case-label" id="modal-case-label">SF Case</div>
+    <div class="modal-title" id="modal-case-status"></div>
+    <div class="modal-prompt">What did you do on this case today?</div>
+    <textarea class="modal-textarea" id="modal-note-input" placeholder="e.g. Sent follow-up email to customer, responded to PD comment, escalated to engineering…" rows="3"></textarea>
+    <div class="modal-hint">This note will appear in your Confluence Daily Log when synced. Leave blank to use the existing notes from Confluence.</div>
+    <div class="modal-actions">
+      <button class="modal-btn-skip" onclick="closeModal('skip')">Skip</button>
+      <button class="modal-btn-save" onclick="closeModal('done')">✓ Mark Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // ✏️ CONFIG — Edit these settings before sharing with your team
+  // ============================================================
+  const CONFIG = {
+    // Your first name (appears in the greeting and backup file names)
+    name: 'Your Name',
+
+    // Your Confluence Active Cases page ID (from the page URL)
+    // e.g. https://intuit-prod.atlassian.net/wiki/spaces/SPACE/pages/XXXXXXXXX
+    confluenceActiveCasesPageId: '',
+
+    // Your Confluence Daily Log page ID
+    confluenceDailyLogPageId: '',
+
+    // localStorage prefix — change to your name so data doesn't clash with teammates
+    // e.g. 'jane' → keys will be 'jane-case-notes', 'jane-daily-log', etc.
+    storagePrefix: 'user',
+  };
+  // ============================================================
+
+  // Set live date, time, and greeting
+  (function() {
+    const now = new Date();
+    const ct = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    const hour = ct.getHours();
+
+    // Greeting based on time of day
+    let greeting = 'Good morning';
+    if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+    else if (hour >= 17) greeting = 'Good evening';
+    document.getElementById('greeting-header').textContent = '👋 ' + greeting + ', ' + CONFIG.name + '!';
+
+    // Format: Friday, April 10, 2026 · Last refreshed 9:04 AM
+    const dateStr = now.toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+      timeZone: 'America/Chicago'
+    });
+    const timeStr = now.toLocaleTimeString('en-US', {
+      hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Chicago'
+    });
+    document.getElementById('live-date').textContent = dateStr + ' · Last refreshed ' + timeStr + ' CT';
+  })();
+
+  // Set refresh timestamp
+  document.getElementById('refresh-time').textContent = new Date().toLocaleTimeString('en-US', {
+    hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Chicago'
+  });
+
+  // Toggle task expand/collapse
+  function toggleTask(el) {
+    if (el.classList.contains('task-item') || el.classList.contains('msg-item')) {
+      el.classList.toggle('expanded');
+    }
+  }
+
+  // Toggle done state — shows note modal when checking, immediate when unchecking
+  function toggleDone(checkbox) {
+    const taskItem = checkbox.closest('.task-item, .msg-item');
+    const currentlyDone = checkbox.classList.contains('done');
+    const jiraAttr = taskItem.dataset.jira;
+    const jiraKeys = jiraAttr ? jiraAttr.split(',').map(s => s.trim()) : [];
+
+    if (currentlyDone) {
+      // UNCHECKING — immediate, no modal
+      checkbox.classList.remove('done');
+      taskItem.classList.remove('done');
+      const sfAttr = taskItem.dataset.sf;
+      if (sfAttr) {
+        sfAttr.split(',').map(s => s.trim()).forEach(sf => { uncheckCase(sf); clearNote(sf); });
+        renderCases(); syncTaskItemsFromCases(); autoSaveSyncFile();
+      }
+      if (jiraKeys.length) {
+        jiraKeys.forEach(j => uncheckJira(j));
+        syncTaskItemsByJira();
+      }
+      // Clear schedule expiry so item comes back if unchecked same day
+      const schedId = taskItem.dataset.schedId;
+      if (schedId) {
+        delete schedDone[schedId];
+        localStorage.setItem(SCHED_DONE_KEY, JSON.stringify(schedDone));
+        renderSchedule();
+      }
+      updateDoneCount();
+    } else {
+      // CHECKING — show note modal, defer DOM update until confirmed
+      const sfAttr   = taskItem.dataset.sf;
+      const sfNums   = sfAttr ? sfAttr.split(',').map(s => s.trim()) : [];
+      const primarySf = sfNums[0] || null;
+      const taskTitle = (taskItem.querySelector('.task-title, .msg-subject')?.textContent || '').trim();
+
+      const markDone = (note) => {
+        checkbox.classList.add('done');
+        taskItem.classList.add('done');
+        if (sfNums.length) {
+          sfNums.forEach(sf => { checkCase(sf); });
+          if (note && primarySf) saveNote(primarySf, note);
+          renderCases(); syncTaskItemsFromCases(); autoSaveSyncFile();
+        }
+        if (jiraKeys.length) {
+          jiraKeys.forEach(j => checkJira(j));
+          syncTaskItemsByJira(); // syncs all other items sharing the same JIRA key
+        }
+        // Mark schedule item done today — will hide it tomorrow morning
+        const schedId = taskItem.dataset.schedId;
+        if (schedId) {
+          schedDone[schedId] = TODAY_CT;
+          localStorage.setItem(SCHED_DONE_KEY, JSON.stringify(schedDone));
+          renderSchedule();
+        }
+        updateDoneCount();
+      };
+
+      if (primarySf) {
+        const c = allCases().find(x => x.sf === primarySf);
+        openNoteModal({
+          label: 'SF #' + primarySf,
+          subtitle: taskTitle || (c ? c.status : ''),
+          existingNote: getNote(primarySf),
+          onDone: markDone, onSkip: () => markDone('')
+        });
+      } else {
+        // No SF case — label with JIRA key if present, else generic
+        const label = jiraKeys.length ? '🎫 ' + jiraKeys[0] : '📝 Quick Note';
+        openNoteModal({
+          label,
+          subtitle: taskTitle,
+          existingNote: '',
+          onDone: markDone, onSkip: () => markDone('')
+        });
+      }
+    }
+  }
+
+  // Keep task-item checkboxes in sync when Active Cases are toggled
+  function syncTaskItemsFromCases() {
+    document.querySelectorAll('.task-item[data-sf], .msg-item[data-sf]').forEach(item => {
+      const sfNums = item.dataset.sf.split(',').map(s => s.trim());
+      const anyChecked = sfNums.some(sf => checkedCases.has(sf));
+      const cb = item.querySelector('.checkbox');
+      if (cb) cb.classList.toggle('done', anyChecked);
+      item.classList.toggle('done', anyChecked);
+    });
+    syncTaskItemsByJira(); // also sync JIRA-keyed items
+    updateDoneCount();
+  }
+
+  function updateDoneCount() {
+    const count = document.querySelectorAll('.checkbox.done').length;
+    document.getElementById('done-count').textContent = count;
+  }
+
+  // Auto-refresh logic: every 2 hours on weekdays 9AM-6PM CT
+  function scheduleNextRefresh() {
+    const now = new Date();
+    const ctNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    const day = ctNow.getDay(); // 0=Sun, 6=Sat
+    const hour = ctNow.getHours();
+    const isWeekday = day >= 1 && day <= 5;
+    const isWorkHours = hour >= 9 && hour < 18;
+
+    if (isWeekday && isWorkHours) {
+      // Refresh every 2 hours from top of the current even hour (9,11,13,15,17)
+      const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+      const msUntilNext2Hour = TWO_HOURS_MS - ((ctNow.getMinutes() * 60 + ctNow.getSeconds()) * 1000) % TWO_HOURS_MS;
+      setTimeout(() => window.location.reload(), msUntilNext2Hour);
+    }
+  }
+
+  scheduleNextRefresh();
+
+  // GIF pool — work-appropriate funny GIFs from Giphy
+  const gifs = [
+    {
+      url: "https://media.giphy.com/media/NTur7XlVDUdqM/giphy.gif",
+      title: "This is fine 🔥",
+      caption: "Current status of my inbox. Everything is completely under control.",
+      link: "https://media.giphy.com/media/NTur7XlVDUdqM/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif",
+      title: "Me on every call 🐱💻",
+      caption: "Typing typing typing... no idea what I'm doing but doing it confidently.",
+      link: "https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif",
+      title: "When the P0 finally closes 🎉",
+      caption: "That feeling when engineering confirms the fix is live and the customer is happy.",
+      link: "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/MS0fQBmGGMaRy/giphy.gif",
+      title: "Me with my ticket queue on Mondays 🖨️",
+      caption: "JIRA when I open it at 8:59 AM.",
+      link: "https://media.giphy.com/media/MS0fQBmGGMaRy/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/3o7TKTDn976rzVgky4/giphy.gif",
+      title: "Inbox zero achieved ✅",
+      caption: "For approximately 4 minutes before the next Salesforce notification arrives.",
+      link: "https://media.giphy.com/media/3o7TKTDn976rzVgky4/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/xDQ3Oql1BN54c/giphy.gif",
+      title: "Me debugging customer issues 🤔",
+      caption: "I have no idea what I'm doing. But I'm doing it FAST.",
+      link: "https://media.giphy.com/media/xDQ3Oql1BN54c/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/l3vRfDn9ca5PtVzpe/giphy.gif",
+      title: "When the migration fails again 😤",
+      caption: "5,337 attachments. Zero imported. I'm fine.",
+      link: "https://media.giphy.com/media/l3vRfDn9ca5PtVzpe/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/QMHoU66sBXqqLqYvGO/giphy.gif",
+      title: "It's fine. Everything is fine. 😅",
+      caption: "When someone asks 'how's the workload?' during escalation season.",
+      link: "https://media.giphy.com/media/QMHoU66sBXqqLqYvGO/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/3o7btPCcdNniyf0ArS/giphy.gif",
+      title: "Reading new bug descriptions 🤯",
+      caption: "Wait, so the intercompany invoice creates a bill, but only on Tuesdays in incognito?",
+      link: "https://media.giphy.com/media/3o7btPCcdNniyf0ArS/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/a0h7sAqON67nO/giphy.gif",
+      title: "Customer confirms issue is resolved 💪",
+      caption: "Case closed. Customer happy. Ticket done. THIS IS THE WAY.",
+      link: "https://media.giphy.com/media/a0h7sAqON67nO/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/12XMGIWtrHBl5e/giphy.gif",
+      title: "When someone tries to close without customer confirmation 🚫",
+      caption: "DO NOT CLOSE THIS TICKET WITHOUT CUSTOMER CONFIRMATION.",
+      link: "https://media.giphy.com/media/12XMGIWtrHBl5e/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/l4FGpMDMsFfczqMFG/giphy.gif",
+      title: "Deploying the workaround 😎",
+      caption: "Is it the best solution? No. Does it work? Also no. But we tried.",
+      link: "https://media.giphy.com/media/l4FGpMDMsFfczqMFG/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/3o7TKSjRrfIPjeiVyE/giphy.gif",
+      title: "Monday energy loading… ⏳",
+      caption: "Current status: technically awake, emotionally negotiating.",
+      link: "https://media.giphy.com/media/3o7TKSjRrfIPjeiVyE/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/l3V0dy1zzyjbYTQQI/giphy.gif",
+      title: "Status: caffeinated and operational ☕",
+      caption: "Do not talk to me before this GIF fully loads.",
+      link: "https://media.giphy.com/media/l3V0dy1zzyjbYTQQI/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif",
+      title: "Sending that follow-up email 📧",
+      caption: "Per my last three emails, I remain enthusiastically patient.",
+      link: "https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/3oKIPnAiaMCws8nOsE/giphy.gif",
+      title: "Ticket closed — see ya 👋",
+      caption: "Resolved. Closed. Moving on at maximum velocity.",
+      link: "https://media.giphy.com/media/3oKIPnAiaMCws8nOsE/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/26BRv0ThflsHCqDrG/giphy.gif",
+      title: "When PD finally responds 🎺",
+      caption: "Only took 4 follow-ups and a calendar invite.",
+      link: "https://media.giphy.com/media/26BRv0ThflsHCqDrG/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif",
+      title: "When the fix actually works ✅",
+      caption: "Against all odds. Against all logic. It works.",
+      link: "https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/xT9IgG50Lg7russbDa/giphy.gif",
+      title: "Waiting for customer response… 🕰️",
+      caption: "Day 6. The out-of-office is still on. I believe in them.",
+      link: "https://media.giphy.com/media/xT9IgG50Lg7russbDa/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/l4pT1MXZXcnMO3a1i/giphy.gif",
+      title: "It's almost Friday 🎉",
+      caption: "The light at the end of the sprint tunnel is real and it is Thursday 4pm.",
+      link: "https://media.giphy.com/media/l4pT1MXZXcnMO3a1i/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/3oz8xIsloV7zOmt81G/giphy.gif",
+      title: "Escalation season survival mode 🫡",
+      caption: "Triage. Prioritize. Hydrate. Repeat.",
+      link: "https://media.giphy.com/media/3oz8xIsloV7zOmt81G/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/zGnnFpOB3OFPi/giphy.gif",
+      title: "When the demo works perfectly 😎",
+      caption: "Of course it works now. It always works when I'm watching.",
+      link: "https://media.giphy.com/media/zGnnFpOB3OFPi/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/3oKIPjzfv0sI2p7fDW/giphy.gif",
+      title: "Reading the Jira backlog 😰",
+      caption: "There are 400 tickets. I opened 3. It somehow went up to 403.",
+      link: "https://media.giphy.com/media/3oKIPjzfv0sI2p7fDW/giphy.gif"
+    },
+    {
+      url: "https://media.giphy.com/media/26gsspfbt1HfKObDy/giphy.gif",
+      title: "Closing cases on a Friday 💅",
+      caption: "The most powerful version of me exists between 3pm and 5pm Friday.",
+      link: "https://media.giphy.com/media/26gsspfbt1HfKObDy/giphy.gif"
+    },
+  ];
+
+  let currentGifIndex = -1;
+  const GIF_DATE = ''; // injected daily by scheduled task — YYYY-MM-DD in CT
+
+  function pickGif() {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+    if (GIF_DATE === today && gifs.length > 0) return 0; // today's fresh gif is always index 0
+    let hash = 0;
+    for (let c of today) hash = (hash * 31 + c.charCodeAt(0)) % gifs.length;
+    return hash;
+  }
+
+  function renderGif(index) {
+    const g = gifs[index];
+    document.getElementById('gif-img').src = g.url;
+    document.getElementById('gif-title').textContent = g.title;
+    document.getElementById('gif-caption').textContent = g.caption;
+    currentGifIndex = index;
+  }
+
+  function newGif() {
+    let next = (currentGifIndex + 1) % gifs.length;
+    renderGif(next);
+    document.getElementById('gif-copy-confirm').style.display = 'none';
+  }
+
+  function copyGifLink() {
+    const g = gifs[currentGifIndex];
+    const text = `${g.title}\n${g.caption}\n${g.link}`;
+    navigator.clipboard.writeText(text).then(() => {
+      const confirm = document.getElementById('gif-copy-confirm');
+      confirm.style.display = 'inline';
+      setTimeout(() => confirm.style.display = 'none', 2500);
+    });
+  }
+
+  renderGif(pickGif());
+
+  // ── QUOTE OF THE DAY ──
+  const quotes = [
+    { emoji: '☕', text: '"It\'s not a bug — it\'s an undocumented feature."', author: 'Every Engineer Ever', context: 'Heard on every escalation call since 2003.' },
+    { emoji: '🤯', text: '"The customer says it works on their end. Their end is a potato."', author: 'Anonymous Support Hero', context: 'P0 war room, 2:47 PM on a Friday.' },
+    { emoji: '🔥', text: '"Have you tried turning it off and back on again? No? Let\'s start there."', author: 'IT Crowd (and also all of us)', context: 'Step 1 of literally every troubleshooting guide.' },
+    { emoji: '📋', text: '"I\'m not saying it\'s impossible. I\'m saying I need a Jira ticket first."', author: 'Product Management, Collective', context: 'Filed under: Things you should embroider on a pillow.' },
+    { emoji: '😤', text: '"The issue is intermittent, meaning it works fine when I demo it and breaks when the customer watches."', author: 'Murphy\'s Law, Software Edition', context: 'Reported in 100% of P0 cases.' },
+    { emoji: '🚀', text: '"We\'re not firefighters. We\'re fire prevention specialists who also fight fires."', author: 'Support Team Motto', context: 'Pending approval from Legal.' },
+    { emoji: '🧩', text: '"It works on my machine." "Great, we\'ll ship your machine."', author: 'Classic Dev Exchange', context: 'Circa every sprint, forever.' },
+    { emoji: '📧', text: '"Per my last email, I remain open to being completely ignored again."', author: 'Awaiting Customer Response', context: 'Status: Blocked - With customer since forever.' },
+    { emoji: '🎯', text: '"The database is fine. The database is always fine. The database is NOT fine."', author: 'DBA at 11:58 PM', context: 'Confidence interval: 0%.' },
+    { emoji: '💅', text: '"I\'m not procrastinating. I\'m doing background processing."', author: 'Multitasking Professional', context: 'Currently processing 47 tabs.' },
+    { emoji: '🐛', text: '"A QA engineer walks into a bar. Orders 0 beers. Orders 999999 beers. Orders -1 beers. Orders a lizard. Orders NULL beers."', author: 'QA War Stories', context: 'The bar was never the same again.' },
+    { emoji: '🤝', text: '"It\'s not a workaround, it\'s an alternative workflow with character."', author: 'Customer Success Handbook, Unofficial Edition', context: 'Chapter 7: Spin Everything.' },
+    { emoji: '⏳', text: '"Engineering says two weeks. I\'ve translated that to \'sometime this fiscal year\'."', author: 'Bilingual Support Lead', context: 'Fluent in Engineering, Business, and Customer.' },
+    { emoji: '🎭', text: '"My job is to stand between the customer\'s panic and the engineer\'s calendar."', author: 'Support, in a nutshell', context: 'Also known as: emotional air traffic control.' },
+    { emoji: '✨', text: '"Resolved. Customer happy. Ticket closed. I am inevitable."', author: 'You, probably', context: 'After closing a particularly stubborn P0.' },
+    { emoji: '📅', text: '"This meeting could have been an email. This email could have been silence."', author: 'Burned-Out but Professional', context: 'Noted in the retrospective nobody read.' },
+    { emoji: '🛠️', text: '"The workaround became the workflow. The workflow became the product. The product is now a P0."', author: 'Tech Debt Historian', context: 'Entry 47 in the incident post-mortem.' },
+    { emoji: '🧠', text: '"I don\'t have imposter syndrome. I have very accurate syndrome."', author: 'Anonymous Senior Specialist', context: 'Said during a quarterly review. Not a joke.' },
+    { emoji: '🎉', text: '"We shipped it. We don\'t know how. We\'re not going to look at it."', author: 'Engineering Lead, Friday 4:58 PM', context: 'Slack message that aged poorly by Monday.' },
+    { emoji: '📧', text: '"Friendly reminder that I sent this exact email eleven days ago."', author: 'Blocked - Awaiting Customer Response', context: 'Status unchanged since the Jurassic period.' },
+    { emoji: '💤', text: '"On-call ended at 6 AM. Stand-up is at 9 AM. I have achieved transcendence."', author: 'Sleep-Deprived SRE', context: 'Camera was off. Mic was somehow on.' },
+    { emoji: '🔥', text: '"It\'s not on fire. The smoke is a feature. The ash is expected behavior."', author: 'Incident Commander, Week 3', context: 'Posted in #incidents before the auto-page fired.' },
+    { emoji: '🤝', text: '"The customer said thanks and closed the case themselves. I don\'t know what I did but I will keep doing it."', author: 'Support, Accidentally', context: 'Best day in recorded ticket history.' },
+    { emoji: '⏳', text: '"ETA: two weeks. That was three quarters ago. We\'re in a different fiscal year now."', author: 'Bilingual (English and Engineering)', context: 'Roughly translated from the roadmap.' },
+    { emoji: '🎯', text: '"The root cause was human error. The human was the system. The system was us."', author: 'Post-Mortem Action Item #12', context: 'Assigned to: Everyone. Due: Last Sprint.' },
+    { emoji: '☕', text: '"My emotional support is a Salesforce case with zero comments and a blank description."', author: 'Triage Veteran', context: 'Opened at 4:55 PM on a Friday. Obviously.' },
+    { emoji: '🚀', text: '"We\'re not behind. We\'re running a parallel timeline where done means something different."', author: 'Sprint Planning Optimist', context: 'Velocity chart not pictured.' },
+    { emoji: '🐛', text: '"It only breaks in production. Production is the only place it matters. This is fine."', author: 'QA Signed Off On It', context: 'Last seen passing all tests in staging.' },
+    { emoji: '💅', text: '"I responded within the SLA. Whether the response helped is a philosophical question."', author: 'Technically Compliant', context: 'Submitted to Betterworks as an achievement.' },
+  ];
+
+  let currentQuoteIndex = -1;
+  const QUOTE_DATE = ''; // injected daily by scheduled task — YYYY-MM-DD in CT
+
+  function pickQuote() {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+    if (QUOTE_DATE === today && quotes.length > 0) return 0; // today's fresh quote is always index 0
+    let hash = 0;
+    for (let c of today) hash = (hash * 31 + c.charCodeAt(0)) % quotes.length;
+    return hash;
+  }
+
+  function renderQuote(index) {
+    const q = quotes[index];
+    document.getElementById('quote-emoji').textContent = q.emoji;
+    document.getElementById('quote-text').textContent = q.text;
+    document.getElementById('quote-author').textContent = '— ' + q.author;
+    document.getElementById('quote-context').textContent = q.context;
+    currentQuoteIndex = index;
+  }
+
+  function newQuote() {
+    let next = (currentQuoteIndex + 1) % quotes.length;
+    renderQuote(next);
+    document.getElementById('quote-copy-confirm').style.display = 'none';
+  }
+
+  function copyQuote() {
+    const q = quotes[currentQuoteIndex];
+    const text = `${q.text}\n— ${q.author}\n\n${q.context}`;
+    navigator.clipboard.writeText(text).then(() => {
+      const confirm = document.getElementById('quote-copy-confirm');
+      confirm.style.display = 'inline';
+      setTimeout(() => confirm.style.display = 'none', 2500);
+    });
+  }
+
+  renderQuote(pickQuote());
+
+  // ── PROJECTS & EXTRA COMMITMENTS ──
+  // ✏️ CUSTOMIZE: Add your extra projects/commitments here.
+  // These appear in the Projects & Extra Commitments section.
+  // You can also add/edit projects via the "+ Add Project" button in the UI.
+  const DEFAULT_PROJECTS = [
+    // EXAMPLE — replace with your own projects:
+    // {
+    //   id: 'my-project-1',
+    //   name: 'Your Project or ERG Name Here',
+    //   desc: 'Brief description of the project or commitment',
+    //   status: 'ongoing',   // ongoing | inprog | notstart | blocked | done
+    //   due: 'Ongoing',
+    //   notes: 'Meeting every Wednesday at 10 AM.\nLink: https://zoom.us/...'
+    // }
+  ];
+
+  function loadProjects() {
+    const saved = localStorage.getItem(CONFIG.storagePrefix + '-projects');
+    if (saved) {
+      try { return JSON.parse(saved); } catch(e) {}
+    }
+    // First load — seed with defaults
+    localStorage.setItem(CONFIG.storagePrefix + '-projects', JSON.stringify(DEFAULT_PROJECTS));
+    return DEFAULT_PROJECTS;
+  }
+
+  function saveProjects(list) {
+    localStorage.setItem(CONFIG.storagePrefix + '-projects', JSON.stringify(list));
+  }
+
+  function projStatusTag(status) {
+    const map = {
+      ongoing:  '<span class="proj-status-ongoing">🔄 Ongoing</span>',
+      inprog:   '<span class="proj-status-inprog">▶ In Progress</span>',
+      notstart: '<span class="proj-status-notstart">○ Not Started</span>',
+      blocked:  '<span class="proj-status-blocked">⏸ Blocked</span>',
+      done:     '<span class="proj-status-done">✓ Completed</span>',
+    };
+    return map[status] || map['notstart'];
+  }
+
+  function renderProjects() {
+    const projects = loadProjects();
+    const container = document.getElementById('projects-list');
+    if (!container) return;
+
+    // Sort: active statuses first, completed last
+    const order = { ongoing:0, inprog:1, notstart:2, blocked:3, done:4 };
+    const sorted = [...projects].sort((a,b) => (order[a.status]||2) - (order[b.status]||2));
+
+    const active = projects.filter(p => p.status !== 'done').length;
+    const countEl = document.getElementById('proj-count');
+    if (countEl) countEl.textContent = `${active} active · ${projects.length} total`;
+
+    if (sorted.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:28px;color:var(--text-muted);font-size:13px;">No projects yet — click + Add Project to get started.</div>';
+      return;
+    }
+
+    container.innerHTML = sorted.map(p => `
+      <div class="proj-row ${p.status === 'done' ? 'proj-done' : ''}">
+        <div>
+          <div class="proj-name">${p.name}</div>
+          ${p.desc ? `<div class="proj-desc">${p.desc}</div>` : ''}
+        </div>
+        <div>${projStatusTag(p.status)}</div>
+        <div class="proj-date">${p.due || '—'}</div>
+        <div class="proj-notes" style="white-space:pre-line;">${p.notes || '<span style="color:var(--text-muted)">—</span>'}</div>
+        <button class="proj-edit-btn" onclick="openProjModal('${p.id}')" title="Edit">✏️</button>
+      </div>
+    `).join('');
+  }
+
+  let editingProjId = null;
+
+  function openProjModal(id) {
+    const projects = loadProjects();
+    editingProjId = id || null;
+    const modal = document.getElementById('proj-modal');
+    const label = document.getElementById('proj-modal-label');
+    const deleteBtn = document.getElementById('proj-modal-delete');
+
+    if (id) {
+      const p = projects.find(x => x.id === id);
+      if (!p) return;
+      label.textContent = 'Edit Project';
+      document.getElementById('proj-input-name').value = p.name;
+      document.getElementById('proj-input-desc').value = p.desc || '';
+      document.getElementById('proj-input-status').value = p.status;
+      document.getElementById('proj-input-due').value = p.due || '';
+      document.getElementById('proj-input-notes').value = p.notes || '';
+      deleteBtn.style.display = 'inline-block';
+    } else {
+      label.textContent = 'New Project';
+      document.getElementById('proj-input-name').value = '';
+      document.getElementById('proj-input-desc').value = '';
+      document.getElementById('proj-input-status').value = 'inprog';
+      document.getElementById('proj-input-due').value = '';
+      document.getElementById('proj-input-notes').value = '';
+      deleteBtn.style.display = 'none';
+    }
+    modal.style.display = 'flex';
+    document.getElementById('proj-input-name').focus();
+  }
+
+  function closeProjModal(save) {
+    if (save) {
+      const name = document.getElementById('proj-input-name').value.trim();
+      if (!name) { document.getElementById('proj-input-name').style.borderColor = 'var(--red)'; return; }
+      const projects = loadProjects();
+      const entry = {
+        id: editingProjId || ('proj-' + Date.now()),
+        name,
+        desc:   document.getElementById('proj-input-desc').value.trim(),
+        status: document.getElementById('proj-input-status').value,
+        due:    document.getElementById('proj-input-due').value.trim(),
+        notes:  document.getElementById('proj-input-notes').value.trim(),
+      };
+      if (editingProjId) {
+        const idx = projects.findIndex(x => x.id === editingProjId);
+        if (idx !== -1) projects[idx] = entry;
+      } else {
+        projects.unshift(entry);
+      }
+      saveProjects(projects);
+      renderProjects();
+    }
+    document.getElementById('proj-modal').style.display = 'none';
+    editingProjId = null;
+  }
+
+  function deleteProjFromModal() {
+    if (!editingProjId) return;
+    if (!confirm('Remove this project from your tracker?')) return;
+    const projects = loadProjects().filter(x => x.id !== editingProjId);
+    saveProjects(projects);
+    renderProjects();
+    document.getElementById('proj-modal').style.display = 'none';
+    editingProjId = null;
+  }
+
+  function projModalOverlayClick(e) {
+    if (e.target === document.getElementById('proj-modal')) closeProjModal(false);
+  }
+
+  renderProjects();
+
+  // ── TODAY'S ACTION ITEMS ──
+  const AI_KEY   = CONFIG.storagePrefix + '-action-items';
+  const AI_TODAY = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+
+  function loadActionItems() {
+    try {
+      const raw = localStorage.getItem(AI_KEY);
+      const items = raw ? JSON.parse(raw) : [];
+      // Rollover: drop items that were marked done on a previous day; carry over undone old items
+      return items.filter(i => !(i.done && i.doneDate && i.doneDate < AI_TODAY));
+    } catch(e) { return []; }
+  }
+
+  function saveActionItems(items) {
+    localStorage.setItem(AI_KEY, JSON.stringify(items));
+  }
+
+  function addActionItem(text, source) {
+    if (!text || !text.trim()) return;
+    const items = loadActionItems();
+    // Deduplicate by text (case-insensitive)
+    const norm = text.trim().toLowerCase();
+    if (items.some(i => i.text.toLowerCase() === norm)) return;
+    items.unshift({
+      id: 'ai-' + Date.now(),
+      text: text.trim().charAt(0).toUpperCase() + text.trim().slice(1),
+      source: source || 'manual',
+      addedDate: AI_TODAY,
+      done: false,
+      doneDate: null
+    });
+    saveActionItems(items);
+    renderActionItems();
+  }
+
+  function toggleActionItem(id) {
+    const items = loadActionItems();
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    item.done = !item.done;
+    item.doneDate = item.done ? AI_TODAY : null;
+    saveActionItems(items);
+    renderActionItems();
+    autoSaveSyncFile();
+  }
+
+  function deleteActionItem(id) {
+    saveActionItems(loadActionItems().filter(i => i.id !== id));
+    renderActionItems();
+    autoSaveSyncFile();
+  }
+
+  function renderActionItems() {
+    const items = loadActionItems();
+    const container = document.getElementById('action-items-list');
+    if (!container) return;
+
+    const open    = items.filter(i => !i.done);
+    const done    = items.filter(i => i.done);
+    const countEl = document.getElementById('ai-count');
+    if (countEl) countEl.textContent = open.length > 0 ? `${open.length} open` : 'All done ✓';
+
+    if (items.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:22px;color:var(--text-muted);font-size:13px;">No action items — notes you write in case popups will be scanned automatically.</div>';
+      return;
+    }
+
+    const renderItem = i => {
+      const isCarry = i.addedDate < AI_TODAY;
+      const srcLabel = i.source !== 'manual'
+        ? `<span style="background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border);padding:1px 6px;border-radius:4px;">${i.source}</span>`
+        : '<span style="color:var(--text-muted)">manual</span>';
+      const carryBadge = isCarry && !i.done
+        ? '<span style="background:#1a140a;color:#c8962a;border:1px solid #3a2a0a;padding:1px 6px;border-radius:4px;">↩ carry-over</span>'
+        : '';
+      return `
+        <div class="ai-row ${i.done ? 'ai-done' : ''}">
+          <div class="case-checkbox ${i.done ? 'done' : ''}" onclick="toggleActionItem('${i.id}')" style="flex-shrink:0;margin-top:2px;"></div>
+          <div style="flex:1;">
+            <div class="ai-text">${i.text}</div>
+            <div class="ai-meta">${srcLabel}${carryBadge}</div>
+          </div>
+          <button class="ai-del-btn" onclick="deleteActionItem('${i.id}')" title="Remove">✕</button>
+        </div>`;
+    };
+
+    let html = open.map(renderItem).join('');
+    if (done.length > 0) {
+      html += `<div style="margin:8px 0 4px;padding:4px 8px;font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--text-muted);text-transform:uppercase;border-top:1px solid var(--border);opacity:0.7;">✓ Completed today</div>`;
+      html += done.map(renderItem).join('');
+    }
+    container.innerHTML = html;
+  }
+
+  // ── Keyword detection ──
+  const AI_PATTERNS = [
+    /\bneed[s]?\s+to\b/i,
+    /\bfollow[\s-]?up\b/i,
+    /\bcreate\s+(?:a\s+)?(?:jira|ticket|bug|case)\b/i,
+    /\bopen\s+(?:a\s+)?(?:jira|ticket|bug)\b/i,
+    /\bcheck\s+(?:with|on)\b/i,
+    /\breach\s+out\b/i,
+    /\bsend\s+(?:an?\s+)?email\b/i,
+    /\bremind\s+me\s+to\b/i,
+    /\bask\s+\w+\s+(?:about|to)\b/i,
+    /\bschedule\s+(?:a\s+)?(?:call|meeting|follow)\b/i,
+  ];
+
+  function detectAndCaptureActionItems(note, sfNum) {
+    if (!note || !note.trim()) return;
+    // Split into sentences / lines
+    const sentences = note.split(/[.!\n]+/).map(s => s.trim()).filter(s => s.length > 6);
+    const captured = [];
+    for (const sentence of sentences) {
+      if (AI_PATTERNS.some(p => p.test(sentence))) {
+        captured.push(sentence);
+      }
+    }
+    if (captured.length === 0) return;
+    const source = sfNum ? `SF #${sfNum}` : 'note';
+    captured.forEach(text => addActionItem(text, source));
+    showAiCapturedToast(captured.length, source);
+  }
+
+  function showAiCapturedToast(count, source) {
+    let toast = document.getElementById('ai-captured-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'ai-captured-toast';
+      toast.className = 'ai-captured-toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = `📋 ${count} action item${count > 1 ? 's' : ''} captured from ${source}`;
+    toast.style.opacity = '1';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 4000);
+  }
+
+  // ── Manual-add modal ──
+  function openAiModal() {
+    document.getElementById('ai-modal-input').value = '';
+    document.getElementById('ai-modal').style.display = 'flex';
+    setTimeout(() => document.getElementById('ai-modal-input').focus(), 50);
+  }
+  function closeAiModal(save) {
+    if (save) {
+      const text = document.getElementById('ai-modal-input').value.trim();
+      if (text) addActionItem(text, 'manual');
+    }
+    document.getElementById('ai-modal').style.display = 'none';
+  }
+  function aiModalOverlayClick(e) {
+    if (e.target === document.getElementById('ai-modal')) closeAiModal(false);
+  }
+
+  renderActionItems();
+
+  // Betterworks copy
+  // ============================================================
+  // SCHEDULE — dynamic, date-aware task list
+  // Items disappear the day after they are checked off.
+  // To update: edit SCHEDULE_ITEMS below and reload.
+  // ============================================================
+
+  // ============================================================
+  // ✏️ SCHEDULE_ITEMS — Add your scheduled/recurring tasks here.
+  // Each item has: id (unique string), title, tags[], sf (optional SF#),
+  // jira (optional Jira key), desc (optional description).
+  // Items disappear the day after you check them off.
+  // ============================================================
+  const SCHEDULE_ITEMS = [
+    // EXAMPLE: Calendar meeting linked to an SF case
+    // {
+    //   id: 'meet-15150000001',
+    //   title: '📞 10:00 AM CT — SF #15150000001 · Customer meeting',
+    //   tags: [{ label: 'Calendar', cls: 'outlook' }],
+    //   sf: '15150000001'
+    // },
+
+    // EXAMPLE: New case triage reminder
+    // {
+    //   id: 'triage-15150000002',
+    //   title: '🆕 Triage SF #15150000002 — New Case Assigned',
+    //   tags: [{ label: 'New Assignment', cls: 'warning' }, { label: 'Salesforce', cls: 'sf' }],
+    //   desc: 'Review case, set status, and add initial notes.',
+    //   sf: '15150000002'
+    // },
+
+    // EXAMPLE: Recurring weekly task (no SF/Jira attached)
+    // {
+    //   id: 'submit-time',
+    //   title: 'Submit Time Worked in Workday',
+    //   tags: [{ label: 'Workday', cls: 'outlook' }],
+    //   desc: 'Weekly reminder — submit your hours before end of day Friday.'
+    // },
+
+    // Add your real schedule items above this line
+  ];
+
+  // schedDone: { itemId: 'YYYY-MM-DD' } — date the item was checked off
+  const SCHED_DONE_KEY = CONFIG.storagePrefix + '-sched-done';
+  let schedDone = JSON.parse(localStorage.getItem(SCHED_DONE_KEY) || '{}');
+  // Purge entries older than 30 days to avoid stale storage
+  Object.keys(schedDone).forEach(id => {
+    if (schedDone[id] < new Date(Date.now() - 30 * 86400000).toLocaleDateString('en-CA')) delete schedDone[id];
+  });
+  localStorage.setItem(SCHED_DONE_KEY, JSON.stringify(schedDone));
+
+  function renderSchedule() {
+    const container = document.getElementById('schedule-list');
+    const countEl   = document.getElementById('schedule-count');
+    if (!container) return;
+
+    // Show items that have NOT been checked off on a previous day
+    const visible = SCHEDULE_ITEMS.filter(item => {
+      const doneDate = schedDone[item.id];
+      return !doneDate || doneDate >= TODAY_CT;  // hide if checked before today
+    });
+
+    if (countEl) countEl.textContent = visible.length + ' item' + (visible.length !== 1 ? 's' : '');
+
+    if (visible.length === 0) {
+      container.innerHTML = '<div style="padding:16px 20px;color:var(--green);font-size:13px;font-weight:600;">✅ Schedule clear for today!</div>';
+      return;
+    }
+
+    container.innerHTML = visible.map(item => {
+      const sfNums    = item.sf ? item.sf.split(',').map(s => s.trim()) : [];
+      const doneToday = schedDone[item.id] === TODAY_CT || sfNums.some(sf => checkedCases.has(sf));
+      const tags      = (item.tags || []).map(t => `<span class="tag ${t.cls}">${t.label}</span>`).join('');
+      const desc      = item.desc ? `<div class="task-desc">${item.desc}</div>` : '';
+      const dataAttrs = [
+        item.sf   ? `data-sf="${item.sf}"`       : '',
+        item.jira ? `data-jira="${item.jira}"`   : '',
+        `data-sched-id="${item.id}"`
+      ].filter(Boolean).join(' ');
+
+      return `<div class="task-item${doneToday ? ' done' : ''}" onclick="toggleTask(this)" ${dataAttrs}>
+        <div class="task-top">
+          <div onclick="event.stopPropagation(); toggleDone(this)" class="checkbox${doneToday ? ' done' : ''}"></div>
+          <div class="task-main">
+            <div class="task-title">${item.title}</div>
+            <div class="task-meta">${tags}</div>
+            ${desc}
+          </div>
+          <div class="chevron">▶</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ============================================================
+  // DAILY LOG — local replacement for Confluence Daily Log
+  // ============================================================
+
+  // ============================================================
+  // seedInitialLog — Pre-populate the Daily Log with historical data.
+  // You can leave this empty to start fresh, or add past entries here
+  // so your log has context when you first set up the dashboard.
+  //
+  // Example (uncomment and fill in your own SF #s and notes):
+  // (function seedInitialLog() {
+  //   const existing = JSON.parse(localStorage.getItem(CONFIG.storagePrefix + '-daily-log') || '{}');
+  //   const TODAY = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+  //   if (!existing[TODAY]) {
+  //     existing[TODAY] = [
+  //       { sf: '15150000001', note: 'Called customer, left voicemail', ts: new Date().toISOString() },
+  //       { sf: '15150000002', note: 'Created JIRA, status: INV - Open', ts: new Date().toISOString() },
+  //     ];
+  //     localStorage.setItem(CONFIG.storagePrefix + '-daily-log', JSON.stringify(existing));
+  //   }
+  // })();
+  // ============================================================
+
+  let dailyLog = JSON.parse(localStorage.getItem(CONFIG.storagePrefix + '-daily-log') || '{}');
+
+  function logCaseActivity(sfNum, note, dateOverride) {
+    const d = dateOverride || TODAY_CT;
+    if (!dailyLog[d]) dailyLog[d] = [];
+    const idx = dailyLog[d].findIndex(e => e.sf === sfNum);
+    const entry = { sf: sfNum, note: (note || '').trim() || 'marked done', ts: new Date().toISOString() };
+    if (idx >= 0) { dailyLog[d][idx] = entry; } else { dailyLog[d].push(entry); }
+    localStorage.setItem(CONFIG.storagePrefix + '-daily-log', JSON.stringify(dailyLog));
+    renderDailyLog();
+  }
+
+  function renderDailyLog() {
+    const container = document.getElementById('daily-log-entries');
+    if (!container) return;
+    const dates = Object.keys(dailyLog).sort().reverse();
+    if (dates.length === 0) {
+      container.innerHTML = '<div class="dl-empty">No entries yet — check off cases above and they\'ll appear here automatically.</div>';
+      return;
+    }
+    container.innerHTML = dates.map(date => {
+      const entries = (dailyLog[date] || []);
+      if (entries.length === 0) return '';
+      const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const rows = entries.map(e => `
+        <div class="dl-row" onclick="showCaseHistory('${escHtml(e.sf)}')">
+          <span class="dl-sf">SF #${escHtml(e.sf)}</span>
+          <span class="dl-note">${escHtml(e.note)}</span>
+          <button class="dl-del" onclick="event.stopPropagation();deleteLogEntry('${date}','${escHtml(e.sf)}')" title="Remove entry">✕</button>
+        </div>`).join('');
+      return `<div class="dl-day">
+        <div class="dl-date-header">${escHtml(dateLabel)} <span class="dl-count">(${entries.length} case${entries.length !== 1 ? 's' : ''})</span></div>
+        ${rows}
+      </div>`;
+    }).join('');
+  }
+
+  function deleteLogEntry(date, sf) {
+    if (!dailyLog[date]) return;
+    dailyLog[date] = dailyLog[date].filter(e => e.sf !== sf);
+    if (dailyLog[date].length === 0) delete dailyLog[date];
+    localStorage.setItem(CONFIG.storagePrefix + '-daily-log', JSON.stringify(dailyLog));
+    renderDailyLog();
+  }
+
+  function showCaseHistory(sf) {
+    const searchBox = document.getElementById('history-search');
+    if (searchBox) searchBox.value = sf;
+    renderCaseHistory(sf);
+    const panel = document.getElementById('daily-log-card');
+    if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderCaseHistory(sf) {
+    const container = document.getElementById('case-history-content');
+    if (!container) return;
+    const q = (sf || '').trim();
+    if (!q) {
+      container.innerHTML = '<span style="font-style:italic;">Enter an SF # above to view its full history across all dates.</span>';
+      return;
+    }
+    const allDates = Object.keys(dailyLog).sort().reverse();
+    const results = allDates.flatMap(date =>
+      (dailyLog[date] || []).filter(e => e.sf.includes(q)).map(e => ({ date, ...e }))
+    );
+    if (results.length === 0) {
+      container.innerHTML = '<span style="font-style:italic;">No entries found for SF #' + escHtml(q) + '.</span>';
+      return;
+    }
+    container.innerHTML = results.map(r => {
+      const dateLabel = new Date(r.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      return `<div class="ch-entry"><div class="ch-date">${escHtml(dateLabel)}</div><div class="ch-note">${escHtml(r.note)}</div></div>`;
+    }).join('');
+  }
+
+  function copyDailyLogBetterworks() {
+    const dates = Object.keys(dailyLog).sort().reverse().slice(0, 14);
+    if (dates.length === 0) { alert('No log entries yet.'); return; }
+    let text = 'Daily Activity Log\n' + '='.repeat(40) + '\n\n';
+    dates.forEach(date => {
+      const entries = dailyLog[date];
+      if (!entries || entries.length === 0) return;
+      const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      text += dateLabel + '\n';
+      entries.forEach(e => { text += `  \u2022 SF #${e.sf} \u2014 ${e.note}\n`; });
+      text += '\n';
+    });
+    navigator.clipboard.writeText(text).then(() => {
+      const confirm = document.getElementById('dl-copy-confirm');
+      if (confirm) { confirm.style.display = 'inline'; setTimeout(() => confirm.style.display = 'none', 2500); }
+    });
+  }
+
+  function addManualLogEntry() {
+    const sf = prompt('SF Case # to log:');
+    if (!sf || !sf.trim()) return;
+    const note = prompt('Note for SF #' + sf.trim() + ':');
+    if (note === null) return;
+    logCaseActivity(sf.trim(), note || 'checked');
+    document.getElementById('daily-log-card').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function copyBetterworks() {
+    const content = document.getElementById('bw-content').innerText;
+    const now = new Date();
+    const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'America/Chicago' });
+    const header = monthName + " — Monthly Accomplishments\n\n";
+    navigator.clipboard.writeText(header + content).then(() => {
+      const confirm = document.getElementById('bw-copy-confirm');
+      confirm.style.display = 'inline';
+      setTimeout(() => confirm.style.display = 'none', 2500);
+    });
+  }
+
+  // Expand tasks on load for P0 items
+  document.querySelectorAll('.task-item')[0]?.classList.add('expanded');
+  document.querySelectorAll('.task-item')[1]?.classList.add('expanded');
+
+  // ============================================================
+  // ACTIVE CASES CHECKLIST — syncs to Confluence via Claude
+  // ============================================================
+
+  // ============================================================
+  // ✏️ SF_CASES — Your active Salesforce case list.
+  // Add each case with: sf (case number), date (opened YYYY-MM-DD),
+  // notes (last action taken), status (current SF status).
+  // Cases added here are permanent (survive page refresh).
+  // You can also add cases via the "+ Add Case" button in the UI.
+  // ============================================================
+  const SF_CASES = [
+    // EXAMPLE — replace with your own cases:
+    // { sf: '15150000001', date: '2026-04-01', notes: 'Sent follow-up email to customer', status: 'In progress' },
+    // { sf: '15150000002', date: '2026-04-05', notes: '', status: 'Blocked - With PD' },
+    // { sf: '15150000003', date: '2026-04-10', notes: 'Created JIRA: PROJ-001', status: 'INV - Open' },
+
+    // Add your real cases above this line
+  ];
+
+  // Load persisted state from localStorage
+  const TODAY_CT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+  let caseNotes = JSON.parse(localStorage.getItem(CONFIG.storagePrefix + '-case-notes') || '{}');
+  let pendingCases = JSON.parse(localStorage.getItem(CONFIG.storagePrefix + '-pending-cases') || '[]'); // cases added via dashboard, not yet in Confluence
+  let caseStatusOverrides = JSON.parse(localStorage.getItem(CONFIG.storagePrefix + '-case-overrides') || '{}'); // tracks local status overrides (e.g. Resolved)
+
+  // ── Daily reset logic ──
+  // checkDates stores { sfNum: 'YYYY-MM-DD' } so we know when each case was last checked
+  let checkDates = JSON.parse(localStorage.getItem(CONFIG.storagePrefix + '-case-check-dates') || '{}');
+  // Migrate from old flat array format if no dates exist yet
+  if (Object.keys(checkDates).length === 0) {
+    const oldChecked = JSON.parse(localStorage.getItem(CONFIG.storagePrefix + '-checked-cases') || '[]');
+    if (oldChecked.length > 0) {
+      oldChecked.forEach(sf => { checkDates[sf] = TODAY_CT; });
+      localStorage.setItem(CONFIG.storagePrefix + '-case-check-dates', JSON.stringify(checkDates));
+    }
+  }
+  // Any case checked before today that isn't resolved becomes a carry-over (shows unchecked at bottom)
+  let carryOverCases = new Set();
+  Object.keys(checkDates).forEach(sf => {
+    if (checkDates[sf] < TODAY_CT && caseStatusOverrides[sf] !== 'Resolved') {
+      carryOverCases.add(sf);
+      delete checkDates[sf];
+    }
+  });
+  localStorage.setItem(CONFIG.storagePrefix + '-case-check-dates', JSON.stringify(checkDates));
+  // checkedCases = only cases checked *today*
+  let checkedCases = new Set(Object.keys(checkDates));
+  localStorage.setItem(CONFIG.storagePrefix + '-checked-cases', JSON.stringify([...checkedCases]));
+  let syncFileHandle = null;
+
+  // ── JIRA cross-sync (daily reset, same pattern as SF cases) ──
+  let jiraCheckDates = JSON.parse(localStorage.getItem(CONFIG.storagePrefix + '-jira-check-dates') || '{}');
+  // Drop JIRA entries from previous days
+  Object.keys(jiraCheckDates).forEach(j => { if (jiraCheckDates[j] < TODAY_CT) delete jiraCheckDates[j]; });
+  let checkedJiras = new Set(Object.keys(jiraCheckDates));
+  localStorage.setItem(CONFIG.storagePrefix + '-jira-check-dates', JSON.stringify(jiraCheckDates));
+  localStorage.setItem(CONFIG.storagePrefix + '-checked-jiras', JSON.stringify([...checkedJiras]));
+
+  function checkJira(jiraKey) {
+    checkedJiras.add(jiraKey);
+    jiraCheckDates[jiraKey] = TODAY_CT;
+    localStorage.setItem(CONFIG.storagePrefix + '-checked-jiras',    JSON.stringify([...checkedJiras]));
+    localStorage.setItem(CONFIG.storagePrefix + '-jira-check-dates', JSON.stringify(jiraCheckDates));
+  }
+  function uncheckJira(jiraKey) {
+    checkedJiras.delete(jiraKey);
+    delete jiraCheckDates[jiraKey];
+    localStorage.setItem(CONFIG.storagePrefix + '-checked-jiras',    JSON.stringify([...checkedJiras]));
+    localStorage.setItem(CONFIG.storagePrefix + '-jira-check-dates', JSON.stringify(jiraCheckDates));
+  }
+  function syncTaskItemsByJira() {
+    document.querySelectorAll('.task-item[data-jira], .msg-item[data-jira]').forEach(item => {
+      const jiraKeys = item.dataset.jira.split(',').map(s => s.trim());
+      const anyChecked = jiraKeys.some(j => checkedJiras.has(j));
+      const cb = item.querySelector('.checkbox');
+      if (cb) cb.classList.toggle('done', anyChecked);
+      item.classList.toggle('done', anyChecked);
+    });
+  }
+
+  // ── Closure keyword detection ──
+  function isClosureNote(note) {
+    const n = (note || '').toLowerCase();
+    return /\b(closed|resolved|case closed|case resolved|closing|closing case|marked closed|marked resolved)\b/.test(n);
+  }
+
+  function showClosedToast(sfNum) {
+    let toast = document.getElementById('closed-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'closed-toast';
+      toast.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#0a2018;border:1.5px solid var(--green-border);color:var(--green);padding:10px 22px;border-radius:10px;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 24px rgba(0,0,0,0.5);transition:opacity 0.4s;';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = '✅ SF #' + sfNum + ' marked Resolved — will be removed from Confluence on next sync';
+    toast.style.opacity = '1';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 4000);
+  }
+
+  // ── Note helpers ──
+  function saveNote(sfNum, note) {
+    if (note && note.trim()) {
+      caseNotes[sfNum] = note.trim();
+      // Auto-detect closure keywords and mark the case Resolved
+      if (isClosureNote(note) && caseStatusOverrides[sfNum] !== 'Resolved') {
+        caseStatusOverrides[sfNum] = 'Resolved';
+        localStorage.setItem(CONFIG.storagePrefix + '-case-overrides', JSON.stringify(caseStatusOverrides));
+        showClosedToast(sfNum);
+      }
+    } else {
+      delete caseNotes[sfNum];
+    }
+    localStorage.setItem(CONFIG.storagePrefix + '-case-notes', JSON.stringify(caseNotes));
+  }
+  function getNote(sfNum) { return caseNotes[sfNum] || ''; }
+  function clearNote(sfNum) { delete caseNotes[sfNum]; localStorage.setItem(CONFIG.storagePrefix + '-case-notes', JSON.stringify(caseNotes)); }
+
+  // ── Checked-case helpers (always use these instead of mutating checkedCases directly) ──
+  function checkCase(sfNum) {
+    checkedCases.add(sfNum);
+    carryOverCases.delete(sfNum); // once you re-check a carry-over, it's no longer carried over
+    checkDates[sfNum] = TODAY_CT;
+    localStorage.setItem(CONFIG.storagePrefix + '-checked-cases', JSON.stringify([...checkedCases]));
+    localStorage.setItem(CONFIG.storagePrefix + '-case-check-dates', JSON.stringify(checkDates));
+  }
+  function uncheckCase(sfNum) {
+    checkedCases.delete(sfNum);
+    delete checkDates[sfNum];
+    localStorage.setItem(CONFIG.storagePrefix + '-checked-cases', JSON.stringify([...checkedCases]));
+    localStorage.setItem(CONFIG.storagePrefix + '-case-check-dates', JSON.stringify(checkDates));
+  }
+
+  // ── Resolved case helpers ──
+  function resolvedCaseNums() {
+    return Object.entries(caseStatusOverrides)
+      .filter(([, v]) => v === 'Resolved')
+      .map(([sf]) => sf);
+  }
+
+  function getStatusTag(status) {
+    if (status.includes('Awaiting')) return '<span class="tag" style="background:#1a0e28;color:#c47fff;font-size:10px;padding:2px 6px;">⏳ Awaiting Customer</span>';
+    if (status.includes('With PD'))  return '<span class="tag" style="background:#1a0e28;color:#c47fff;font-size:10px;padding:2px 6px;">🔁 With PD</span>';
+    if (status === 'In progress')    return '<span class="tag in-prog" style="font-size:10px;padding:2px 6px;">▶ In Progress</span>';
+    if (status.includes('INV'))      return '<span class="tag open" style="font-size:10px;padding:2px 6px;">📂 INV - Open</span>';
+    return '<span class="tag open" style="font-size:10px;padding:2px 6px;">' + status + '</span>';
+  }
+
+  function allCases() {
+    // Merge hardcoded + pending, dedup by sf number, apply local status overrides
+    const seen = new Set(SF_CASES.map(c => c.sf));
+    const merged = [...SF_CASES, ...pendingCases.filter(c => !seen.has(c.sf))];
+    return merged
+      .map(c => ({ ...c, status: caseStatusOverrides[c.sf] || c.status, isCarryOver: carryOverCases.has(c.sf) }))
+      .filter(c => c.status !== 'Resolved'); // hide resolved cases from active list
+  }
+
+  function renderCases() {
+    const container = document.getElementById('cases-list');
+    if (!container) return;
+    const pendingSfNums = new Set(pendingCases.map(c => c.sf));
+    const visible = filteredCases();
+    const total   = allCases();
+
+    // Stale banner
+    const staleCases = total.filter(isStale);
+    const staleBanner = document.getElementById('stale-banner');
+    if (staleBanner) {
+      if (staleCases.length > 0) {
+        staleBanner.style.display = 'flex';
+        staleBanner.innerHTML = `⚠️ <strong>${staleCases.length} case${staleCases.length > 1 ? 's' : ''} need${staleCases.length === 1 ? 's' : ''} a follow-up</strong> — "Blocked - Awaiting customer" for 5+ days: ${staleCases.map(c => `<a onclick="highlightCase('${c.sf}')" style="color:#ff8060;cursor:pointer;text-decoration:underline;">SF #${c.sf}</a>`).join(', ')}`;
+      } else {
+        staleBanner.style.display = 'none';
+      }
+    }
+
+    // Filter count label
+    const countEl = document.getElementById('filter-count');
+    if (countEl) {
+      const isFiltered = filterState.search || filterState.status || filterState.date;
+      countEl.textContent = isFiltered ? `${visible.length} of ${total.length} shown` : `${total.length} cases`;
+    }
+
+    // Empty state
+    const emptyEl = document.getElementById('filter-empty');
+    if (emptyEl) emptyEl.style.display = visible.length === 0 ? 'block' : 'none';
+
+    // Detect where carry-overs start so we can render a section divider
+    const firstCarryOverIdx = visible.findIndex(c => c.isCarryOver);
+
+    container.innerHTML = visible.map((c, idx) => {
+      const isDone    = checkedCases.has(c.sf);
+      const isPending = pendingSfNums.has(c.sf);
+      const stale     = isStale(c);
+      const sfUrl     = `https://intuit-prod.my.salesforce.com/cases/${c.sf}`;
+      const notesEsc  = c.notes.replace(/"/g, '&quot;');
+      const days      = daysSince(c.date);
+      const dateLabel = stale
+        ? `<span style="color:#ff8060;font-size:11px;">${c.date} <span style="font-size:9px;">(${days}d)</span></span>`
+        : `<span class="case-date">${c.date}</span>`;
+      // Section divider before the first carry-over case
+      const divider = (idx === firstCarryOverIdx && firstCarryOverIdx > 0)
+        ? `<div style="margin:6px 0 4px;padding:4px 8px;font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--text-muted);text-transform:uppercase;border-top:1px solid var(--border);opacity:0.7;">↩ Carried over from previous days</div>`
+        : '';
+      return `${divider}<div class="case-row ${isDone ? 'case-done' : ''} ${c.isCarryOver ? 'case-carryover' : ''}" data-sf="${c.sf}" id="case-row-${c.sf}">
+        <div class="case-checkbox ${isDone ? 'done' : ''}" onclick="toggleCaseDone('${c.sf}', event)"></div>
+        <span style="display:inline-flex;align-items:center;gap:4px;">
+          <a href="${sfUrl}" target="_blank" onclick="event.stopPropagation()" class="case-num">SF #${c.sf}</a>
+          <span onclick="event.stopPropagation(); copySfNum('${c.sf}', this)" title="Copy case number" style="cursor:pointer;font-size:11px;color:var(--text-muted);padding:1px 4px;border-radius:3px;transition:all 0.15s;" onmouseover="this.style.background='var(--surface2)';this.style.color='var(--blue)'" onmouseout="this.style.background='';this.style.color='var(--text-muted)'">📋</span>
+        </span>
+        ${dateLabel}
+        <span class="case-note" title="${notesEsc}">${c.notes || '<span style="color:var(--text-muted)">—</span>'}</span>
+        <span style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+          ${getStatusTag(c.status)}
+          ${c.isCarryOver ? '<span class="tag" style="background:#1a140a;color:#c8962a;font-size:10px;padding:2px 6px;">↩ Carry-over</span>' : ''}
+          ${stale     ? '<span class="tag stale">⚠ Follow up</span>' : ''}
+          ${isPending ? '<span class="tag pending">⏳ Pending sync</span>' : ''}
+        </span>
+      </div>`;
+    }).join('');
+    updateCasesDoneCount();
+
+    // Sync check-all box state
+    const checkAllBox = document.getElementById('check-all-box');
+    if (checkAllBox) {
+      const visibleSfs = visible.map(c => c.sf);
+      const allChecked = visibleSfs.length > 0 && visibleSfs.every(sf => checkedCases.has(sf));
+      const someChecked = visibleSfs.some(sf => checkedCases.has(sf));
+      checkAllBox.classList.toggle('done', allChecked);
+      checkAllBox.classList.toggle('indeterminate', !allChecked && someChecked);
+    }
+  }
+
+  function toggleCheckAll() {
+    const visible = filteredCases();
+    const allChecked = visible.length > 0 && visible.every(c => checkedCases.has(c.sf));
+    if (allChecked) {
+      visible.forEach(c => { uncheckCase(c.sf); clearNote(c.sf); });
+    } else {
+      visible.forEach(c => { if (!checkedCases.has(c.sf)) checkCase(c.sf); });
+    }
+    renderCases(); syncTaskItemsFromCases(); autoSaveSyncFile();
+  }
+
+  function copySfNum(sfNum, el) {
+    navigator.clipboard.writeText(sfNum).then(() => {
+      const orig = el.textContent;
+      el.textContent = '✓';
+      el.style.color = 'var(--green)';
+      el.style.background = 'var(--green-bg)';
+      setTimeout(() => {
+        el.textContent = orig;
+        el.style.color = '';
+        el.style.background = '';
+      }, 1400);
+    });
+  }
+
+  function highlightCase(sfNum) {
+    // Clear any active stale filter and scroll to case
+    clearFilters();
+    setTimeout(() => {
+      const el = document.getElementById('case-row-' + sfNum);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.style.background = 'rgba(255,107,79,0.12)';
+        el.style.border = '1px solid #5a2010';
+        setTimeout(() => { el.style.background = ''; el.style.border = '1px solid transparent'; }, 2500);
+      }
+    }, 100);
+  }
+
+  function updateCasesDoneCount() {
+    const el = document.getElementById('cases-done-count');
+    if (!el) return;
+    const total = allCases().length;
+    const n = checkedCases.size;
+    el.textContent = `${n} of ${total} checked`;
+    el.style.color = n > 0 ? 'var(--green)' : 'var(--text-muted)';
+  }
+
+  // ── Add New Case modal ──
+  function openAddCaseModal() {
+    // Set today's date as default
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+    document.getElementById('ac-date').value = today;
+    document.getElementById('ac-sf').value = '';
+    document.getElementById('ac-notes').value = '';
+    document.getElementById('ac-status').value = '';
+    document.getElementById('ac-error').style.display = 'none';
+    document.getElementById('add-case-modal').classList.add('open');
+    setTimeout(() => document.getElementById('ac-sf').focus(), 80);
+  }
+
+  function closeAddCaseModal() {
+    document.getElementById('add-case-modal').classList.remove('open');
+  }
+
+  function addCaseOverlayClick(e) {
+    if (e.target === document.getElementById('add-case-modal')) closeAddCaseModal();
+  }
+
+  function submitAddCase() {
+    const sf     = document.getElementById('ac-sf').value.trim();
+    const date   = document.getElementById('ac-date').value;
+    const status = document.getElementById('ac-status').value;
+    const notes  = document.getElementById('ac-notes').value.trim();
+    const errEl  = document.getElementById('ac-error');
+
+    // Validation
+    if (!sf) { errEl.textContent = 'SF Case # is required.'; errEl.style.display = 'block'; return; }
+    if (!date) { errEl.textContent = 'Date Opened is required.'; errEl.style.display = 'block'; return; }
+    if (!status) { errEl.textContent = 'Please select a status.'; errEl.style.display = 'block'; return; }
+    if (allCases().some(c => c.sf === sf)) {
+      errEl.textContent = `SF #${sf} already exists in your case list.`;
+      errEl.style.display = 'block'; return;
+    }
+
+    // Add to pending
+    const newCase = { sf, date, notes, status };
+    pendingCases.push(newCase);
+    localStorage.setItem(CONFIG.storagePrefix + '-pending-cases', JSON.stringify(pendingCases));
+
+    closeAddCaseModal();
+    renderCases();
+    autoSaveSyncFile(); // Include in next sync
+
+    // Scroll new case into view
+    setTimeout(() => {
+      const el = document.querySelector(`[data-sf="${sf}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+  }
+
+  // ── Unified note modal ──
+  let _modalOnDone = null;  // callback(note) — mark done with note
+  let _modalOnSkip = null;  // callback()     — mark done, no note
+  // Note: clicking overlay or Escape cancels entirely (nothing marked done)
+
+  function openNoteModal({ label, subtitle, existingNote, onDone, onSkip }) {
+    document.getElementById('modal-case-label').textContent  = label;
+    document.getElementById('modal-case-status').textContent = subtitle || '';
+    document.getElementById('modal-note-input').value        = existingNote || '';
+    _modalOnDone = onDone;
+    _modalOnSkip = onSkip;
+    document.getElementById('note-modal').classList.add('open');
+    setTimeout(() => document.getElementById('modal-note-input').focus(), 80);
+  }
+
+  function closeModal(action) {
+    // action: 'done' | 'skip' | false(cancel)
+    document.getElementById('note-modal').classList.remove('open');
+    const note = document.getElementById('modal-note-input').value.trim();
+    if (action === 'done'  && _modalOnDone) {
+      const fn = _modalOnDone; _modalOnDone = _modalOnSkip = null; fn(note);
+      // Scan the note for action items
+      if (note) {
+        const sfMatch = document.getElementById('modal-case-label').textContent.match(/SF #?(\d+)/);
+        detectAndCaptureActionItems(note, sfMatch ? sfMatch[1] : null);
+      }
+    }
+    else if (action === 'skip' && _modalOnSkip) { const fn = _modalOnSkip; _modalOnDone = _modalOnSkip = null; fn(); }
+    else { _modalOnDone = _modalOnSkip = null; } // cancel — nothing happens
+  }
+
+  function modalOverlayClick(e) {
+    if (e.target === document.getElementById('note-modal')) closeModal(false);
+  }
+
+  document.addEventListener('keydown', e => {
+    // Ctrl+F / Cmd+F → open dashboard global search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      const modalOpen = document.getElementById('note-modal')?.classList.contains('open')
+                     || document.getElementById('add-case-modal')?.classList.contains('open');
+      if (!modalOpen) {
+        e.preventDefault();
+        showGlobalSearch();
+      }
+      return;
+    }
+    if (e.key === 'Escape') {
+      if (document.getElementById('global-search-bar').classList.contains('open')) {
+        hideGlobalSearch();
+      } else {
+        closeModal(false);
+      }
+    }
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) closeModal('done');
+  });
+
+  // ── Global Search (Ctrl+F) ──
+  // Stores original innerHTML of searchable nodes so we can restore highlights
+  const _gsOriginals = new Map();
+
+  function showGlobalSearch() {
+    const bar = document.getElementById('global-search-bar');
+    const input = document.getElementById('global-search-input');
+    bar.classList.add('open');
+    input.value = '';
+    document.getElementById('gs-count').textContent = '';
+    input.focus();
+    input.select();
+  }
+
+  function hideGlobalSearch() {
+    document.getElementById('global-search-bar').classList.remove('open');
+    // Restore all hidden items and remove highlights
+    document.querySelectorAll('.gs-hidden').forEach(el => el.classList.remove('gs-hidden'));
+    _gsOriginals.forEach((orig, el) => { el.innerHTML = orig; });
+    _gsOriginals.clear();
+    document.getElementById('gs-count').textContent = '';
+    // Clear the active-cases search filter too
+    const fsInput = document.getElementById('filter-search');
+    if (fsInput && fsInput.value) { fsInput.value = ''; applyFilters(); }
+  }
+
+  function runGlobalSearch(query) {
+    const q = query.trim().toLowerCase();
+    const countEl = document.getElementById('gs-count');
+
+    // Restore previous highlights before re-running
+    _gsOriginals.forEach((orig, el) => { el.innerHTML = orig; });
+    _gsOriginals.clear();
+    document.querySelectorAll('.gs-hidden').forEach(el => el.classList.remove('gs-hidden'));
+
+    if (!q) { countEl.textContent = ''; return; }
+
+    // ── Search task/message items ──
+    let matches = 0;
+    document.querySelectorAll('.task-item, .msg-item').forEach(item => {
+      const sfAttr = (item.dataset.sf || '').toLowerCase();
+      const titleEl = item.querySelector('.task-title, .msg-subject, .msg-from');
+      const descEl  = item.querySelector('.task-desc');
+      const text = [
+        titleEl?.textContent || '',
+        descEl?.textContent  || '',
+        sfAttr
+      ].join(' ').toLowerCase();
+
+      if (text.includes(q)) {
+        matches++;
+        // Highlight matches in title and description
+        [titleEl, descEl].forEach(el => {
+          if (!el) return;
+          if (!_gsOriginals.has(el)) _gsOriginals.set(el, el.innerHTML);
+          el.innerHTML = highlightText(el.textContent, query);
+        });
+      } else {
+        item.classList.add('gs-hidden');
+      }
+    });
+
+    // ── Also pipe into Active Cases filter ──
+    const fsInput = document.getElementById('filter-search');
+    if (fsInput) { fsInput.value = query; applyFilters(); }
+    // Don't double-count active cases rows in the match total above
+    // (they're in a separate panel with their own filter)
+    const caseMatches = document.querySelectorAll('.case-row:not(.gs-hidden)').length;
+
+    const total = matches + caseMatches;
+    countEl.textContent = total === 0 ? 'No matches' : `${total} match${total !== 1 ? 'es' : ''}`;
+    countEl.style.color = total === 0 ? 'var(--red)' : 'var(--text-muted)';
+  }
+
+  function highlightText(text, query) {
+    if (!query) return escHtml(text);
+    const reEscaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`(${reEscaped})`, 'gi');
+    return text.split(re).map((part, i) =>
+      i % 2 === 1 ? `<mark class="gs-hl">${escHtml(part)}</mark>` : escHtml(part)
+    ).join('');
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Active Cases panel toggle (used by the case row checkboxes)
+  function toggleCaseDone(sfNum, event) {
+    if (event) event.stopPropagation();
+    if (checkedCases.has(sfNum)) {
+      uncheckCase(sfNum); clearNote(sfNum);
+      renderCases(); syncTaskItemsFromCases(); autoSaveSyncFile();
+    } else {
+      const c = allCases().find(x => x.sf === sfNum);
+      openNoteModal({
+        label: 'SF #' + sfNum,
+        subtitle: c ? c.status + (c.notes ? ' · ' + c.notes.slice(0, 80) + (c.notes.length > 80 ? '…' : '') : '') : '',
+        existingNote: getNote(sfNum),
+        onDone: (note) => {
+          saveNote(sfNum, note); checkCase(sfNum);
+          logCaseActivity(sfNum, note);
+          renderCases(); syncTaskItemsFromCases(); autoSaveSyncFile();
+        },
+        onSkip: () => {
+          checkCase(sfNum);
+          logCaseActivity(sfNum, '');
+          renderCases(); syncTaskItemsFromCases(); autoSaveSyncFile();
+        }
+      });
+    }
+  }
+
+  // ── IndexedDB helpers for storing File System Access API handle ──
+  function openSyncDB() {
+    return new Promise((res, rej) => {
+      const req = indexedDB.open(CONFIG.storagePrefix + '-sync-db', 1);
+      req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
+      req.onsuccess = e => res(e.target.result);
+      req.onerror = () => rej(req.error);
+    });
+  }
+
+  async function getStoredHandle() {
+    try {
+      const db = await openSyncDB();
+      return new Promise((res, rej) => {
+        const tx = db.transaction('handles', 'readonly');
+        const req = tx.objectStore('handles').get('syncFile');
+        req.onsuccess = e => res(e.target.result || null);
+        req.onerror = () => rej(req.error);
+      });
+    } catch { return null; }
+  }
+
+  async function storeHandle(handle) {
+    const db = await openSyncDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction('handles', 'readwrite');
+      const req = tx.objectStore('handles').put(handle, 'syncFile');
+      req.onsuccess = res;
+      req.onerror = () => rej(req.error);
+    });
+  }
+
+  // ── File System Access API ──
+  async function setupSyncFile() {
+    if (!window.showSaveFilePicker) {
+      alert('Auto-sync requires Chrome or Edge. Please open this dashboard in Chrome.');
+      return;
+    }
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: `${CONFIG.storagePrefix}-sync-request.json`,
+        startIn: 'desktop',
+        types: [{ description: 'JSON file', accept: { 'application/json': ['.json'] } }]
+      });
+      syncFileHandle = handle;
+      await storeHandle(handle);
+      await writeSyncData(handle);
+      updateSyncStatus('connected');
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        console.error('Sync file setup failed:', e);
+        updateSyncStatus('error');
+      }
+    }
+  }
+
+  async function autoSaveSyncFile() {
+    if (!syncFileHandle) {
+      syncFileHandle = await getStoredHandle();
+      if (!syncFileHandle) return;
+    }
+    try {
+      const perm = await syncFileHandle.queryPermission({ mode: 'readwrite' });
+      if (perm !== 'granted') {
+        const granted = await syncFileHandle.requestPermission({ mode: 'readwrite' });
+        if (granted !== 'granted') { syncFileHandle = null; updateSyncStatus('disconnected'); return; }
+      }
+      await writeSyncData(syncFileHandle);
+      updateSyncStatus('connected');
+    } catch (e) {
+      console.warn('Auto-save failed:', e);
+      syncFileHandle = null;
+      updateSyncStatus('disconnected');
+    }
+  }
+
+  async function writeSyncData(handle) {
+    const cases = [...checkedCases].map(sf => ({ sf, note: getNote(sf) || '' }));
+    const openActionItems = loadActionItems().filter(i => !i.done);
+    const data = {
+      generatedAt: new Date().toISOString(),
+      checkedCases: cases,
+      newCases: pendingCases,      // cases to be added to Confluence
+      resolvedCases: resolvedCaseNums(),  // SF numbers to remove from Confluence Active Cases page
+      openActionItems  // unchecked action items for end-of-day check
+    };
+    const writable = await handle.createWritable();
+    await writable.write(JSON.stringify(data, null, 2));
+    await writable.close();
+  }
+
+  // ── Backup & Restore ──
+  const BACKUP_KEYS = [
+    CONFIG.storagePrefix + '-case-notes',
+    CONFIG.storagePrefix + '-pending-cases',
+    CONFIG.storagePrefix + '-case-overrides',
+    CONFIG.storagePrefix + '-case-check-dates',
+    CONFIG.storagePrefix + '-checked-cases',
+    CONFIG.storagePrefix + '-jira-check-dates',
+    CONFIG.storagePrefix + '-checked-jiras',
+    CONFIG.storagePrefix + '-daily-log',
+    CONFIG.storagePrefix + '-sched-done',
+    CONFIG.storagePrefix + '-projects',
+    CONFIG.storagePrefix + '-action-items'
+  ];
+
+  async function backupData() {
+    if (!window.showSaveFilePicker) {
+      alert('Backup requires Chrome or Edge.');
+      return;
+    }
+    const data = {};
+    BACKUP_KEYS.forEach(key => {
+      const val = localStorage.getItem(key);
+      if (val !== null) {
+        try { data[key] = JSON.parse(val); } catch { data[key] = val; }
+      }
+    });
+    const dateStr  = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+    const timeStr  = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', minute: '2-digit', hour12: true });
+    const backup   = { backupDate: dateStr, backupTime: timeStr, version: 1, data };
+    try {
+      const handle   = await window.showSaveFilePicker({
+        suggestedName: `${CONFIG.storagePrefix}-backup-${dateStr}.json`,
+        startIn: 'desktop',
+        types: [{ description: 'Dashboard backup', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(JSON.stringify(backup, null, 2));
+      await writable.close();
+      const confirm  = document.getElementById('backup-confirm');
+      if (confirm)   { confirm.style.display = 'inline'; setTimeout(() => confirm.style.display = 'none', 3000); }
+    } catch (e) {
+      if (e.name !== 'AbortError') alert('Backup failed: ' + e.message);
+    }
+  }
+
+  async function restoreData() {
+    if (!window.showOpenFilePicker) {
+      alert('Restore requires Chrome or Edge.');
+      return;
+    }
+    if (!confirm('Restoring will overwrite your current data and reload the page. Continue?')) return;
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'Dashboard backup', accept: { 'application/json': ['.json'] } }],
+        multiple: false
+      });
+      const file   = await handle.getFile();
+      const text   = await file.text();
+      const backup = JSON.parse(text);
+      if (!backup.data) { alert('This doesn\'t look like a valid backup file.'); return; }
+      Object.entries(backup.data).forEach(([key, val]) => {
+        localStorage.setItem(key, JSON.stringify(val));
+      });
+      alert(`Restored backup from ${backup.backupDate} at ${backup.backupTime}. Reloading now…`);
+      window.location.reload();
+    } catch (e) {
+      if (e.name !== 'AbortError') alert('Restore failed: ' + e.message);
+    }
+  }
+
+  // ── Sync Now ──
+  async function syncNow() {
+    const btn = document.getElementById('sync-now-btn');
+    btn.textContent = '⏳ Saving…';
+    btn.disabled = true;
+    try {
+      await autoSaveSyncFile();
+      btn.textContent = '✓ Synced! (~2 hrs to apply)';
+      btn.style.background = 'var(--green-bg)';
+      btn.style.borderColor = 'var(--green-border)';
+      btn.style.color = 'var(--green)';
+      setTimeout(() => {
+        btn.textContent = '⚡ Sync Now';
+        btn.style.background = '';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+        btn.disabled = false;
+      }, 3000);
+    } catch(e) {
+      btn.textContent = '⚡ Sync Now';
+      btn.disabled = false;
+    }
+  }
+
+  function updateSyncStatus(state) {
+    const btn = document.getElementById('sync-file-btn');
+    const status = document.getElementById('sync-file-status');
+    const syncNowBtn = document.getElementById('sync-now-btn');
+    if (!btn || !status) return;
+    if (state === 'connected') {
+      btn.textContent = '✓ Sync file connected';
+      btn.classList.add('connected');
+      const t = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Chicago' });
+      status.textContent = `· Saved ${t} CT — auto-syncs within 2 hrs`;
+      status.style.color = 'var(--green)';
+      if (syncNowBtn) syncNowBtn.style.display = 'inline-block';
+    } else if (state === 'disconnected') {
+      btn.textContent = '📁 Reconnect sync file';
+      btn.classList.remove('connected');
+      status.textContent = '· Click to reconnect';
+      status.style.color = 'var(--yellow)';
+      if (syncNowBtn) syncNowBtn.style.display = 'none';
+    } else if (state === 'error') {
+      btn.textContent = '⚠ Setup failed — try again';
+      btn.classList.remove('connected');
+      status.style.color = 'var(--red)';
+      if (syncNowBtn) syncNowBtn.style.display = 'none';
+    } else {
+      btn.textContent = '📁 Connect sync file';
+      btn.classList.remove('connected');
+      status.textContent = '· Click once to enable — then checkboxes auto-sync';
+      status.style.color = 'var(--text-muted)';
+      if (syncNowBtn) syncNowBtn.style.display = 'none';
+    }
+  }
+
+  // ── Monitor checkbox (orange, lighter — for logging without full "done" semantics) ──
+  function toggleMonitorDone(checkbox) {
+    const taskItem = checkbox.closest('.task-item');
+    const currentlyDone = checkbox.classList.contains('done');
+    if (currentlyDone) {
+      checkbox.classList.remove('done');
+      taskItem.classList.remove('done');
+      const sfAttr = taskItem.dataset.sf;
+      if (sfAttr) {
+        uncheckCase(sfAttr);
+        clearNote(sfAttr);
+        renderCases();
+        syncTaskItemsFromCases();
+        autoSaveSyncFile();
+      }
+      updateDoneCount();
+    } else {
+      const sfAttr = taskItem.dataset.sf;
+      const taskTitle = (taskItem.querySelector('.task-title')?.textContent || '').trim();
+      const markDone = (note) => {
+        checkbox.classList.add('done');
+        taskItem.classList.add('done');
+        if (sfAttr) {
+          checkCase(sfAttr);
+          if (note) saveNote(sfAttr, note);
+          renderCases();
+          syncTaskItemsFromCases();
+          autoSaveSyncFile();
+        }
+        updateDoneCount();
+      };
+      if (sfAttr) {
+        const c = allCases().find(x => x.sf === sfAttr);
+        openNoteModal({
+          label: 'SF #' + sfAttr,
+          subtitle: taskTitle || (c ? c.status : ''),
+          existingNote: getNote(sfAttr),
+          onDone: markDone,
+          onSkip: () => markDone('')
+        });
+      } else {
+        openNoteModal({
+          label: '📝 Quick Note',
+          subtitle: taskTitle,
+          existingNote: '',
+          onDone: markDone,
+          onSkip: () => markDone('')
+        });
+      }
+    }
+  }
+
+  // ── Stale detection ──
+  function daysSince(dateStr) {
+    const opened = new Date(dateStr + 'T00:00:00');
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    return Math.floor((now - opened) / (1000 * 60 * 60 * 24));
+  }
+  function isStale(c) {
+    return c.status.includes('Awaiting') && daysSince(c.date) >= 5;
+  }
+
+  // ── Filter & sort state ──
+  let filterState = { search: '', status: '', date: '', sort: 'date-asc' };
+
+  function filteredCases() {
+    const todayCT = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    const todayStr = todayCT.toISOString().split('T')[0];
+
+    return allCases()
+      .filter(c => {
+        if (filterState.search) {
+          const q = filterState.search.toLowerCase();
+          if (!c.sf.toLowerCase().includes(q) && !c.notes.toLowerCase().includes(q) && !c.status.toLowerCase().includes(q)) return false;
+        }
+        if (filterState.status && c.status !== filterState.status) return false;
+        if (filterState.date) {
+          const diff = daysSince(c.date);
+          if (filterState.date === 'today'  && c.date !== todayStr) return false;
+          if (filterState.date === 'week'   && diff > 7)  return false;
+          if (filterState.date === 'month'  && diff > 30) return false;
+          if (filterState.date === 'stale'  && !isStale(c)) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        // Carry-overs always go to the bottom of the list regardless of other sort settings
+        if (a.isCarryOver !== b.isCarryOver) return a.isCarryOver ? 1 : -1;
+        if (filterState.sort === 'date-desc')   return b.date.localeCompare(a.date);
+        if (filterState.sort === 'status')       return a.status.localeCompare(b.status);
+        if (filterState.sort === 'stale-first') {
+          const sa = isStale(a) ? 0 : 1, sb = isStale(b) ? 0 : 1;
+          return sa !== sb ? sa - sb : a.date.localeCompare(b.date);
+        }
+        return a.date.localeCompare(b.date);
+      });
+  }
+
+  function applyFilters() {
+    filterState.search = document.getElementById('filter-search').value;
+    filterState.status = document.getElementById('filter-status').value;
+    filterState.date   = document.getElementById('filter-date').value;
+    filterState.sort   = document.getElementById('filter-sort').value;
+
+    const anyActive = filterState.search || filterState.status || filterState.date || filterState.sort !== 'date-asc';
+    const clearBtn = document.getElementById('filter-clear-btn');
+    if (clearBtn) clearBtn.style.display = anyActive ? 'inline-block' : 'none';
+
+    // Highlight active selects
+    ['filter-status','filter-date','filter-sort'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const isActive = el.value && !(id === 'filter-sort' && el.value === 'date-asc');
+      el.classList.toggle('filter-active', !!isActive);
+    });
+
+    renderCases();
+  }
+
+  function clearFilters() {
+    filterState = { search: '', status: '', date: '', sort: 'date-asc' };
+    document.getElementById('filter-search').value = '';
+    document.getElementById('filter-status').value = '';
+    document.getElementById('filter-date').value = '';
+    document.getElementById('filter-sort').value = 'date-asc';
+    ['filter-status','filter-date','filter-sort'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('filter-active');
+    });
+    document.getElementById('filter-clear-btn').style.display = 'none';
+    renderCases();
+  }
+
+  // Initialize on page load
+  (async function initCases() {
+    renderSchedule();
+    renderCases();
+    renderDailyLog();
+    syncTaskItemsFromCases(); // Restore task-item checkboxes from localStorage
+    const stored = await getStoredHandle();
+    if (stored) {
+      syncFileHandle = stored;
+      try {
+        const perm = await stored.queryPermission({ mode: 'readwrite' });
+        updateSyncStatus(perm === 'granted' ? 'connected' : 'disconnected');
+      } catch { updateSyncStatus('disconnected'); }
+    }
+  })();
+
+</script>
+
+</body>
+</html>
